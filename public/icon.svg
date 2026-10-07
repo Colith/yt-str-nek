@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+  <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.08" />
+  <g transform="scale(0.5) translate(8,8)">
+    <!-- Cola -->
+    <path d="M 70 30 C 88 16, 112 10, 118 28 C 110 48, 84 50, 70 36 Z" fill="currentColor" opacity="0.95" />
+    <path d="M 74 34 C 90 24, 108 22, 114 32 C 106 42, 88 42, 74 36 Z" fill="currentColor" opacity="0.55" />
+    <!-- Cuerpo -->
+    <ellipse cx="52" cy="32" rx="22" ry="12" fill="currentColor" />
+    <!-- Cabeza -->
+    <ellipse cx="32" cy="30" rx="12" ry="9" fill="currentColor" opacity="0.98" />
+    <!-- Hocico -->
+    <path d="M 20 28 C 10 26, 6 30, 10 32 C 16 34, 20 32, 20 30 Z" fill="currentColor" />
+    <!-- Ojo -->
+    <circle cx="34" cy="28" r="2" fill="currentColor" />
+    <circle cx="35" cy="27.5" r="1" fill="white" />
+  </g>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 64" role="img" aria-labelledby="title">
+  <title>Koi</title>
+  <defs>
+    <linearGradient id="koi-body" x1="0" y1="0" x2="1" y2="0.6">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.96" />
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.88" />
+    </linearGradient>
+  </defs>
+  <g>
+    <!-- Cola -->
+    <path
+      d="M 70 30 C 88 16, 112 10, 118 28 C 110 48, 84 50, 70 36 Z"
+      fill="currentColor"
+      opacity="0.95"
+    />
+    <path
+      d="M 74 34 C 90 24, 108 22, 114 32 C 106 42, 88 42, 74 36 Z"
+      fill="currentColor"
+      opacity="0.55"
+    />
+    <!-- Cuerpo -->
+    <ellipse cx="52" cy="32" rx="22" ry="12" fill="url(#koi-body)" />
+    <!-- Dorso -->
+    <path d="M 40 24 C 52 14, 66 14, 70 24 C 64 20, 52 20, 40 24 Z" fill="currentColor" opacity="0.8" />
+    <!-- Vientre -->
+    <path d="M 42 40 C 52 48, 64 48, 68 38 C 60 44, 50 44, 42 40 Z" fill="currentColor" opacity="0.45" />
+    <!-- Escamas -->
+    <ellipse cx="48" cy="30" rx="3.5" ry="2" fill="currentColor" opacity="0.25" />
+    <ellipse cx="56" cy="34" rx="2.5" ry="1.5" fill="currentColor" opacity="0.2" />
+    <!-- Cabeza -->
+    <ellipse cx="32" cy="30" rx="12" ry="9" fill="currentColor" opacity="0.98" />
+    <!-- Hocico -->
+    <path d="M 20 28 C 10 26, 6 30, 10 32 C 16 34, 20 32, 20 30 Z" fill="currentColor" opacity="0.95" />
+    <!-- Barba (bigotes) -->
+    <path d="M 22 30 L 8 26" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+    <path d="M 22 32 L 8 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+    <!-- Ojo -->
+    <circle cx="34" cy="28" r="2" fill="currentColor" />
+    <circle cx="35" cy="27.5" r="1" fill="white" />
+    <!-- Aleta dorsal -->
+    <path d="M 48 20 C 56 8, 66 6, 62 18 C 58 14, 52 14, 48 20 Z" fill="currentColor" opacity="0.85" />
+    <!-- Aleta pectoral -->
+    <path d="M 36 38 C 40 46, 48 50, 44 40 C 42 44, 38 42, 36 38 Z" fill="currentColor" opacity="0.85" />
+    <!-- Aleta ventral -->
+    <path d="M 44 40 C 48 50, 56 52, 52 42 C 50 46, 46 44, 44 40 Z" fill="currentColor" opacity="0.75" />
+  </g>
+</svg>

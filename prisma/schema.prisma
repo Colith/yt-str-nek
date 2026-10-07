@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id        String      @id @default(cuid())
+  username  String      @unique
+  password  String
+  role      String      @default("mod")
+  // Volumen con el que le gusta escuchar al usuario, de 0 a 100.
+  // Null significa que todavia no ha elegido ninguno.
+  volume    Int?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  addedBy   QueueItem[] @relation("AddedByUser")
+}
+
+model Song {
+  id           String        @id @default(cuid())
+  youtubeId    String        @unique
+  title        String
+  channel      String
+  thumbnail    String
+  durationSec  Int?
+  createdAt    DateTime      @default(now())
+  queueItems   QueueItem[]
+  historyItems HistoryItem[]
+}
+
+model QueueItem {
+  id            String   @id @default(cuid())
+  position      Int
+  requesterName String?
+  addedById     String?
+  addedBy       User?    @relation("AddedByUser", fields: [addedById], references: [id])
+  songId        String
+  song          Song     @relation(fields: [songId], references: [id])
+  createdAt     DateTime @default(now())
+  playedAt      DateTime?
+}
+
+model HistoryItem {
+  id            String   @id @default(cuid())
+  requesterName String?
+  addedById     String?
+  addedByName   String?
+  songId        String
+  song          Song     @relation(fields: [songId], references: [id])
+  playedAt      DateTime @default(now())
+}
