@@ -1,4 +1,4 @@
-# yt-str-nek
+# yt-str-nek 
 
 Panel de moderadores para gestionar la cola de peticiones de música de un stream, sin depender del chat del canal. Interfaz con estética sakura (tema claro y oscuro) y sincronización entre varios moderadores.
 
