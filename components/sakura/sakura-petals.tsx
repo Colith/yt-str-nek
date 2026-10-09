@@ -30,15 +30,19 @@ function generatePetals(isDark: boolean): Petal[] {
 }
 
 export function SakuraPetals() {
-  const [petals, setPetals] = useState<Petal[]>(() =>
-    generatePetals(false)
-  )
+  // Empieza vacío: los pétalos llevan valores aleatorios, y si se generaran
+  // también en el servidor no coincidirían con los del navegador al hidratar.
+  const [petals, setPetals] = useState<Petal[]>([])
 
   useEffect(() => {
-    const observer = new MutationObserver(() => {
+    const regenerate = () => {
       const dark = document.documentElement.classList.contains("dark")
       setPetals(generatePetals(dark))
-    })
+    }
+
+    // Se generan al montar, ya en el navegador y sabiendo el tema.
+    regenerate()
+    const observer = new MutationObserver(regenerate)
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class"],
