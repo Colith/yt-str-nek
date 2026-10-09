@@ -1,11 +1,13 @@
 import { z } from "zod"
 
 export const addToQueueSchema = z.object({
+  streamerId: z.string().optional(),
   youtubeId: z.string().min(1),
   requesterName: z.string().max(50).optional().or(z.literal("")),
 })
 
 export const reorderQueueSchema = z.object({
+  streamerId: z.string().optional(),
   items: z
     .array(
       z.object({

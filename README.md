@@ -7,7 +7,8 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - Búsqueda de vídeos en YouTube con miniaturas, canal y duración
 - Alta de canciones pegando directamente el enlace (`watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`)
 - Nombre del solicitante opcional en cada canción
-- Cola con máximo **20** canciones
+- **Una cola por streamer**: cada usuario con rol `streamer` tiene su propia cola y su propio historial
+- Cada cola admite un máximo de **20** canciones
 - Reordenar la cola arrastrando (drag & drop) o con teclado
 - Marcar como reproducida, lo que mueve la canción al historial
 - Reañadir canciones desde el historial, o vaciarlo entero de una vez
@@ -16,7 +17,7 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - El volumen con el que escucha cada usuario se guarda en su cuenta y se recupera al entrar
 - Sincronización entre pestañas (sondeo cada 5 s + al recuperar el foco)
 - Acceso restringido por usuario y contraseña (sesión con cookie `httpOnly` firmada)
-- Reproductor en `/player` para el streamer, con la canción actual, control de volumen y avance automático al terminar
+- Reproductor en `/player` para el streamer: la música empieza y avanza sola mientras los moderadores añaden canciones
 
 ## Páginas
 
@@ -24,8 +25,8 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 | --- | --- |
 | `/` | Portada: elige modo moderador o modo streamer |
 | `/login` | Inicio de sesión |
-| `/mod` | Panel de moderadores: cola, búsqueda, historial |
-| `/player` | Reproductor del streamer |
+| `/mod` | Panel de moderadores: cola, búsqueda e historial del streamer elegido |
+| `/player` | Reproductor de la cola de un streamer |
 | `/users` | Gestión de usuarios, contraseñas y roles |
 
 `/mod`, `/player` y `/users` exigen sesión. Si entras sin ella, el login te devuelve a
@@ -36,9 +37,9 @@ acceso.
 
 | Rol | Panel `/mod` | Reproductor `/player` | Usuarios `/users` |
 | --- | --- | --- | --- |
-| `admin` | Sí | Sí | Sí |
-| `mod` | Sí | Sí | No |
-| `streamer` | No | Sí | No |
+| `admin` | Sí, todas las colas | Sí, cualquier cola | Sí |
+| `mod` | Sí, todas las colas | Sí, cualquier cola | No |
+| `streamer` | No | Solo la suya | No |
 
 El rol viaja dentro del JWT, así que un cambio de rol no invalida la sesión abierta:
 hay que volver a entrar para que el proxy lo tenga en cuenta.
@@ -48,14 +49,37 @@ borrar al último `admin`, y no se puede eliminar a uno mismo.
 
 El primer usuario creado es `admin`. Los siguientes, si no se indica rol, son `mod`.
 
+## Una cola por streamer
+
+Cada usuario con rol `streamer` es dueño de una cola y de un historial. Las posiciones y
+el máximo de 20 canciones van por streamer, así que lo que pasa en una cola no afecta a
+las demás.
+
+- **Admin y mod** eligen arriba del panel `/mod` la cola de qué streamer gestionan.
+  Buscar, añadir por enlace, reordenar, marcar como reproducida y el historial actúan
+  sobre ese streamer. La elección va en la URL (`/mod?streamer=<id>`) y el navegador
+  recuerda la última.
+- **Un streamer** abre `/player` y recibe su propia cola, sin elegir nada. El servidor
+  ignora cualquier otro streamer que venga en la petición, así que no puede ver ni
+  avanzar la cola de otro.
+- Admin y mod también pueden abrir el reproductor de cualquier streamer con
+  `/player?streamer=<id>`, o desde el botón **Reproductor** del panel.
+
+Si todavía no existe ningún streamer, el panel lo avisa y un admin puede crearlo en
+`/users`.
+
+Al aplicar la migración que introduce esto, lo que hubiera en la cola y el historial
+compartidos pasa al streamer más antiguo. Si en ese momento no existe ninguno, se
+descarta.
+
 ## Usuarios
 
 Solo los `admin` entran en `/users`, y desde ahí crean, renombran, cambian la contraseña,
 cambian el rol o eliminan usuarios.
 
-Al borrar un usuario, las canciones que había añadido **se quedan** en la cola y en el
-historial, pero sin autor. Es preferible a borrar la cola entera por un cambio de
-contraseña.
+Al borrar un usuario, las canciones que había añadido a las colas de otros **se quedan**
+en la cola y en el historial, pero sin autor. Si el usuario era streamer, su propia cola
+y su historial se borran con él.
 
 ### Un detalle de la sesión
 
@@ -67,8 +91,23 @@ del usuario.
 ## Reproductor
 
 `/player` muestra la canción actual con portada, canal y quién la pidió. Tiene play/pausa,
-un botón para saltar a la siguiente y un deslizador de volumen. Cuando la canción
-termina, se marca como reproducida y carga la siguiente sola.
+un botón para saltar a la siguiente y un deslizador de volumen.
+
+### Reproducción automática
+
+El reproductor está pensado para dejarlo abierto y no tocarlo:
+
+- Al abrirlo, la primera canción de la cola empieza a sonar sola.
+- Cuando una canción termina, se marca como reproducida y suena la siguiente.
+- Si la cola se queda vacía, la página sigue consultando cada pocos segundos y arranca
+  en cuanto un moderador añade algo.
+- Si un vídeo no se puede reproducir (borrado, privado o con la inserción desactivada),
+  se salta para que la cola no se quede parada.
+- Con dos reproductores abiertos para el mismo streamer, la canción solo avanza una vez.
+
+El reproductor de YouTube se crea una sola vez y se reutiliza: al pasar de canción solo
+se le cambia el vídeo. Así conserva el permiso de reproducción que ya tiene y la
+siguiente arranca sin intervención.
 
 El volumen va de 0 a 100, con un deslizador vertical y el porcentaje al lado. El valor se
 conserva al cambiar de canción y **se guarda en la cuenta del usuario**, así que no hay que
@@ -93,15 +132,19 @@ canción está en la cola dos veces, al terminar la primera se pasa a la segunda
 volver a empezar el vídeo.
 
 Si el navegador bloquea la reproducción automática, la página lo detecta y muestra un
-botón **Activar reproducción**. La comprobación es necesaria porque la IFrame API de
+botón **Activar audio**. La comprobación es necesaria porque la IFrame API de
 YouTube no lanza ningún error cuando no arranca: simplemente se queda quieta.
 
 ### Sobre el audio
 
-El reproductor arranca la canción silenciada y acto seguido activa el volumen, porque
-los navegadores bloquean la reproducción automática con sonido si el visitante no ha
-interactuado antes. Si el navegador lo impide, aparece un botón **Activar reproducción**
-para que pulses una vez.
+Los navegadores pueden bloquear la reproducción automática con sonido si el visitante
+todavía no ha interactuado con la página. Normalmente basta con haber llegado al
+reproductor haciendo clic desde la portada. Si aun así el navegador lo impide, aparece
+un botón **Activar audio**: se pulsa una vez y el resto de la cola suena sola. Como
+*Browser Source* de OBS esta restricción no existe.
+
+El reproductor arranca con sonido, no silenciado. Arrancar en silencio y quitarlo
+después hace que Chrome pause el vídeo, y la cola se quedaba parada.
 
 Para que el audio llegue al directo, la música tiene que pasar por la captura de
 escritorio de OBS. Si quieres evitar arrastrar el resto del sonido del navegador al
@@ -117,7 +160,47 @@ suspensión por retransmitir su música.
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Prisma · PostgreSQL (Vercel Postgres) · jose (JWT) · bcryptjs · dnd-kit · next-themes · YouTube IFrame Player API
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Prisma 7 · PostgreSQL (Vercel Postgres) · jose (JWT) · bcryptjs · dnd-kit · next-themes · YouTube IFrame Player API
+
+### Sobre Prisma 7
+
+- Las URLs de conexión ya no van en `schema.prisma`. La de las migraciones se lee en
+  `prisma.config.ts` y la de ejecución en `lib/prisma.ts`, que se conecta con el
+  adaptador `@prisma/adapter-pg`.
+- El cliente se genera en `lib/generated/prisma` y se importa desde ahí, no desde
+  `@prisma/client`. Esa carpeta no se sube al repositorio: `npm install` la crea con
+  `prisma generate`.
+- La CLI ya no carga el `.env` sola; lo hace `prisma.config.ts` con `dotenv`. Una
+  variable ya definida en el entorno manda sobre la del `.env`.
+- `prisma migrate dev` ya no regenera el cliente ni lanza el seed: `npm run
+  prisma:migrate` regenera el cliente, y el seed se lanza con `npm run db:seed`.
+
+## Pruebas
+
+Las pruebas usan [Vitest](https://vitest.dev) y no necesitan ninguna base de datos ni
+clave de YouTube: se ejecutan tal cual después de `npm install`.
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm test` | Ejecuta todas las pruebas una vez |
+| `npm run test:watch` | Las vuelve a ejecutar al guardar un archivo |
+| `npm run test:coverage` | Igual que `npm test`, con informe de cobertura en `coverage/` |
+
+Hay dos grupos, en `tests/`:
+
+- **`tests/server`** corre en Node. Cubre las librerías de `lib/`, el proxy, todas las
+  rutas de `app/api` y las migraciones. Las rutas se ejecutan contra un PostgreSQL real
+  en memoria ([PGlite](https://pglite.dev)) al que se le aplican las migraciones del
+  proyecto, así que se prueban el mismo SQL, las mismas restricciones y las mismas
+  transacciones que en producción. Solo se sustituyen las cookies de la petición y las
+  llamadas a la API de YouTube.
+- **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, el panel de
+  moderadores, la gestión de usuarios, el reproductor, los hooks y lo que decide cada
+  página según la sesión. El reproductor se prueba con un doble de la IFrame API de
+  YouTube que permite simular que un vídeo empieza, termina, falla o queda bloqueado.
+
+Lo que las pruebas no ejercitan: el arrastre con el ratón para reordenar la cola, el
+`layout` raíz y la reproducción real de YouTube en un navegador.
 
 ## Puesta en marcha
 
@@ -157,8 +240,8 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 
 | Variable | Descripción |
 | --- | --- |
-| `POSTGRES_PRISMA_URL` | URL de conexión (pooled) a PostgreSQL |
-| `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate |
+| `POSTGRES_PRISMA_URL` | URL de conexión (pooled) a PostgreSQL. Es la que usa la aplicación en ejecución |
+| `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate y por el seed |
 | `AUTH_SECRET` | Clave para firmar la sesión. Genera con `openssl rand -base64 32` |
 | `YOUTUBE_API_KEY` | Clave de la YouTube Data API v3 (necesaria para buscar y resolver vídeos) |
 | `SEED_USERNAME` | Usuario inicial que crea `npm run db:seed` |
@@ -206,7 +289,7 @@ Para crear el primer usuario en producción, define `SEED_USERNAME` y `SEED_PASS
 | `npx prisma studio` | Interfaz visual de la base de datos |
 | `npm run db:seed` | Crea el usuario inicial |
 | `npm run db:seed -- --force` | Crea el usuario o actualiza su contraseña y rol |
-| `npm run prisma:migrate` | Crea una migración en desarrollo |
+| `npm run prisma:migrate` | Crea una migración en desarrollo y regenera el cliente |
 | `npm run db:migrate` | Aplica las migraciones pendientes (en local, a mano) |
 | `bash scripts/prod-bootstrap.sh <url> [usuario]` | Aplica migraciones y crea/actualiza un mod contra otra base |
 

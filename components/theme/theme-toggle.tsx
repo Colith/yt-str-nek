@@ -7,18 +7,19 @@ import { Button } from "@/components/ui/button"
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
 
-  // resolvedTheme es undefined en SSR; los iconos se ajustan al montar el tema.
-  const isDark = resolvedTheme === "dark"
-
+  // Se pintan los dos iconos y el CSS enseña el que toca. Elegirlo en el render
+  // rompía la hidratación: el servidor no sabe el tema guardado y pintaba la
+  // luna, el navegador con tema oscuro pintaba el sol, y React tiraba el árbol
+  // entero para rehacerlo en el cliente.
   return (
     <Button
       variant="ghost"
       size="icon"
-      aria-label={isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-      suppressHydrationWarning
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label="Cambiar entre tema claro y oscuro"
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
-      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      <Sun className="hidden h-5 w-5 dark:block" />
+      <Moon className="h-5 w-5 dark:hidden" />
     </Button>
   )
 }

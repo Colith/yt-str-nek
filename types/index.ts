@@ -7,6 +7,12 @@ export interface Song {
   durationSec: number | null
 }
 
+/** Un usuario con rol streamer: el dueño de una cola. */
+export interface Streamer {
+  id: string
+  username: string
+}
+
 export interface QueueItem {
   id: string
   position: number

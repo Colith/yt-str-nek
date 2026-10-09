@@ -1,7 +1,16 @@
-import { PrismaClient } from "@prisma/client"
+// El seed corre fuera de Next, así que carga el .env él mismo.
+import "dotenv/config"
+import { PrismaPg } from "@prisma/adapter-pg"
 import bcrypt from "bcryptjs"
+import { PrismaClient } from "../lib/generated/prisma/client"
 
-const prisma = new PrismaClient()
+// Conexión directa si la hay: es un script puntual, no necesita el pooler.
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({
+    connectionString:
+      process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_PRISMA_URL,
+  }),
+})
 
 const MIN_PASSWORD_LENGTH = 8
 const ROLES = ["admin", "mod", "streamer"] as const
