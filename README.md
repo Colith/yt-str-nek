@@ -175,6 +175,33 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/u
 - `prisma migrate dev` ya no regenera el cliente ni lanza el seed: `npm run
   prisma:migrate` regenera el cliente, y el seed se lanza con `npm run db:seed`.
 
+## Pruebas
+
+Las pruebas usan [Vitest](https://vitest.dev) y no necesitan ninguna base de datos ni
+clave de YouTube: se ejecutan tal cual después de `npm install`.
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm test` | Ejecuta todas las pruebas una vez |
+| `npm run test:watch` | Las vuelve a ejecutar al guardar un archivo |
+| `npm run test:coverage` | Igual que `npm test`, con informe de cobertura en `coverage/` |
+
+Hay dos grupos, en `tests/`:
+
+- **`tests/server`** corre en Node. Cubre las librerías de `lib/`, el proxy, todas las
+  rutas de `app/api` y las migraciones. Las rutas se ejecutan contra un PostgreSQL real
+  en memoria ([PGlite](https://pglite.dev)) al que se le aplican las migraciones del
+  proyecto, así que se prueban el mismo SQL, las mismas restricciones y las mismas
+  transacciones que en producción. Solo se sustituyen las cookies de la petición y las
+  llamadas a la API de YouTube.
+- **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, el panel de
+  moderadores, la gestión de usuarios, el reproductor, los hooks y lo que decide cada
+  página según la sesión. El reproductor se prueba con un doble de la IFrame API de
+  YouTube que permite simular que un vídeo empieza, termina, falla o queda bloqueado.
+
+Lo que las pruebas no ejercitan: el arrastre con el ratón para reordenar la cola, el
+`layout` raíz y la reproducción real de YouTube en un navegador.
+
 ## Puesta en marcha
 
 ### 1. Dependencias y variables de entorno
