@@ -160,7 +160,20 @@ suspensión por retransmitir su música.
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Prisma · PostgreSQL (Vercel Postgres) · jose (JWT) · bcryptjs · dnd-kit · next-themes · YouTube IFrame Player API
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Prisma 7 · PostgreSQL (Vercel Postgres) · jose (JWT) · bcryptjs · dnd-kit · next-themes · YouTube IFrame Player API
+
+### Sobre Prisma 7
+
+- Las URLs de conexión ya no van en `schema.prisma`. La de las migraciones se lee en
+  `prisma.config.ts` y la de ejecución en `lib/prisma.ts`, que se conecta con el
+  adaptador `@prisma/adapter-pg`.
+- El cliente se genera en `lib/generated/prisma` y se importa desde ahí, no desde
+  `@prisma/client`. Esa carpeta no se sube al repositorio: `npm install` la crea con
+  `prisma generate`.
+- La CLI ya no carga el `.env` sola; lo hace `prisma.config.ts` con `dotenv`. Una
+  variable ya definida en el entorno manda sobre la del `.env`.
+- `prisma migrate dev` ya no regenera el cliente ni lanza el seed: `npm run
+  prisma:migrate` regenera el cliente, y el seed se lanza con `npm run db:seed`.
 
 ## Puesta en marcha
 
@@ -200,8 +213,8 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 
 | Variable | Descripción |
 | --- | --- |
-| `POSTGRES_PRISMA_URL` | URL de conexión (pooled) a PostgreSQL |
-| `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate |
+| `POSTGRES_PRISMA_URL` | URL de conexión (pooled) a PostgreSQL. Es la que usa la aplicación en ejecución |
+| `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate y por el seed |
 | `AUTH_SECRET` | Clave para firmar la sesión. Genera con `openssl rand -base64 32` |
 | `YOUTUBE_API_KEY` | Clave de la YouTube Data API v3 (necesaria para buscar y resolver vídeos) |
 | `SEED_USERNAME` | Usuario inicial que crea `npm run db:seed` |
@@ -249,7 +262,7 @@ Para crear el primer usuario en producción, define `SEED_USERNAME` y `SEED_PASS
 | `npx prisma studio` | Interfaz visual de la base de datos |
 | `npm run db:seed` | Crea el usuario inicial |
 | `npm run db:seed -- --force` | Crea el usuario o actualiza su contraseña y rol |
-| `npm run prisma:migrate` | Crea una migración en desarrollo |
+| `npm run prisma:migrate` | Crea una migración en desarrollo y regenera el cliente |
 | `npm run db:migrate` | Aplica las migraciones pendientes (en local, a mano) |
 | `bash scripts/prod-bootstrap.sh <url> [usuario]` | Aplica migraciones y crea/actualiza un mod contra otra base |
 

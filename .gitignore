@@ -37,5 +37,7 @@ yarn-error.log*
 
 # prisma
 /prisma/*.db
+# cliente generado por `prisma generate` (se rehace en el postinstall)
+/lib/generated/
 # crash dumps
 core.*
