@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
-import { renumberQueue } from "@/lib/songs"
+import { requireRoles } from "@/lib/authorize"
+import { PLAYER_ROLES } from "@/lib/session"
+import { markAsPlayed } from "@/lib/songs"
+import { resolveStreamerId } from "@/lib/streamers"
 
 /**
  * Marca la canción actual como reproducida y deja que el siguiente sondeo
  * del reproductor cargue la nueva.
  */
 export async function POST(req: Request) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  const guard = await requireRoles(PLAYER_ROLES)
+  if (guard instanceof NextResponse) return guard
 
   const body = await req.json().catch(() => ({}))
   const finishedId = typeof body.queueItemId === "string" ? body.queueItemId : null
@@ -18,31 +19,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Falta la canción a terminar" }, { status: 400 })
   }
 
-  // Solo avanza si el id coincide con lo que el reproductor tiene en pantalla,
-  // para no saltarse una canción que un mod acaba de añadir por delante.
-  const playing = await prisma.queueItem.findUnique({
-    where: { id: finishedId },
-    include: { addedBy: { select: { username: true } } },
-  })
+  const target = await resolveStreamerId(guard.session, body.streamerId)
+  if (target instanceof NextResponse) return target
 
-  if (!playing) {
+  // Solo avanza si el id sigue en la cola de ese streamer: es lo que el
+  // reproductor tiene en pantalla. Así no se salta una canción que un mod acaba
+  // de añadir por delante, ni se avanza dos veces si hay dos reproductores
+  // abiertos para el mismo streamer.
+  const played = await markAsPlayed(finishedId, target.streamerId)
+  if (!played) {
     return NextResponse.json(
       { error: "Esa canción ya no está en la cola" },
       { status: 409 }
     )
   }
-
-  await prisma.historyItem.create({
-    data: {
-      requesterName: playing.requesterName,
-      addedById: playing.addedById,
-      addedByName: playing.addedBy?.username ?? null,
-      songId: playing.songId,
-    },
-  })
-
-  await prisma.queueItem.delete({ where: { id: playing.id } })
-  await renumberQueue()
 
   return NextResponse.json({ ok: true })
 }

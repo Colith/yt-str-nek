@@ -17,6 +17,8 @@ export async function DELETE(
     return NextResponse.json({ error: "La canción no está en la cola" }, { status: 404 })
   }
 
-  await renumberQueue()
+  // Solo se renumera la cola a la que pertenecía la canción.
+  await renumberQueue(item.streamerId)
+
   return NextResponse.json({ ok: true })
 }

@@ -29,6 +29,9 @@ export interface YTEventTarget {
 export interface YTPlayer {
   playVideo(): void
   pauseVideo(): void
+  stopVideo(): void
+  /** Cambia de vídeo y lo reproduce sin recrear el iframe. */
+  loadVideoById(videoId: string, startSeconds?: number): void
   mute(): void
   unMute(): void
   isMuted(): boolean

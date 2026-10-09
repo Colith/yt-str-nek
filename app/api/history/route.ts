@@ -2,12 +2,20 @@ import { NextResponse } from "next/server"
 import { requireRoles, PANEL_ROLES } from "@/lib/authorize"
 import { prisma } from "@/lib/prisma"
 import { MAX_QUEUE, nextQueuePosition, upsertSong } from "@/lib/songs"
+import { resolveStreamerId } from "@/lib/streamers"
 
-export async function GET() {
+export async function GET(req: Request) {
   const guard = await requireRoles(PANEL_ROLES)
   if (guard instanceof NextResponse) return guard
 
+  const target = await resolveStreamerId(
+    guard.session,
+    new URL(req.url).searchParams.get("streamerId")
+  )
+  if (target instanceof NextResponse) return target
+
   const history = await prisma.historyItem.findMany({
+    where: { streamerId: target.streamerId },
     include: {
       song: true,
     },
@@ -20,7 +28,7 @@ export async function GET() {
   return NextResponse.json({ history })
 }
 
-/** Reañade una canción del historial al final de la cola. */
+/** Reañade una canción del historial al final de la cola del mismo streamer. */
 export async function POST(req: Request) {
   const guard = await requireRoles(PANEL_ROLES)
   if (guard instanceof NextResponse) return guard
@@ -32,20 +40,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Cancción no indicada" }, { status: 400 })
   }
 
-  const queueCount = await prisma.queueItem.count()
-  if (queueCount >= MAX_QUEUE) {
-    return NextResponse.json(
-      { error: `La cola está llena (máx. ${MAX_QUEUE} canciones)` },
-      { status: 400 }
-    )
-  }
-
   const historyItem = await prisma.historyItem.findUnique({
     where: { id: historyId },
     include: { song: true },
   })
   if (!historyItem) {
     return NextResponse.json({ error: "La canción no está en el historial" }, { status: 404 })
+  }
+
+  // La canción vuelve a la cola de la que salió, no a la que el cliente diga.
+  const { streamerId } = historyItem
+
+  const queueCount = await prisma.queueItem.count({ where: { streamerId } })
+  if (queueCount >= MAX_QUEUE) {
+    return NextResponse.json(
+      { error: `La cola está llena (máx. ${MAX_QUEUE} canciones)` },
+      { status: 400 }
+    )
   }
 
   const song = await upsertSong(historyItem.song.youtubeId)
@@ -55,10 +66,11 @@ export async function POST(req: Request) {
 
   const item = await prisma.queueItem.create({
     data: {
-      position: await nextQueuePosition(),
+      position: await nextQueuePosition(streamerId),
       requesterName: historyItem.requesterName,
       addedById: session.id,
       songId: song.id,
+      streamerId,
     },
     include: {
       song: true,
@@ -70,7 +82,7 @@ export async function POST(req: Request) {
 }
 
 /**
- * Vacía el historial.
+ * Vacía el historial de un streamer.
  *
  * Solo borra el historial: la cola no se toca. Si el caller no dice nada, se
  * borra entero; con ?id= se borra una entrada concreta.
@@ -80,10 +92,14 @@ export async function DELETE(req: Request) {
   if (guard instanceof NextResponse) return guard
 
   const url = new URL(req.url)
+  const target = await resolveStreamerId(guard.session, url.searchParams.get("streamerId"))
+  if (target instanceof NextResponse) return target
+  const { streamerId } = target
+
   const id = url.searchParams.get("id")
 
   if (id) {
-    const removed = await prisma.historyItem.deleteMany({ where: { id } })
+    const removed = await prisma.historyItem.deleteMany({ where: { id, streamerId } })
     if (removed.count === 0) {
       return NextResponse.json(
         { error: "Esa canción no está en el historial" },
@@ -93,6 +109,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ ok: true, removed: removed.count })
   }
 
-  const removed = await prisma.historyItem.deleteMany({})
+  const removed = await prisma.historyItem.deleteMany({ where: { streamerId } })
   return NextResponse.json({ ok: true, removed: removed.count })
 }

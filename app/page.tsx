@@ -15,7 +15,7 @@ const MODES = [
     href: "/mod",
     title: "Modo moderador",
     description:
-      "Gestiona la cola: busca canciones, añade enlaces, elimina, reordena y marca lo que ya sonó.",
+      "Gestiona la cola de cada streamer: busca canciones, añade enlaces, elimina, reordena y marca lo que ya sonó.",
     icon: ShieldCheck,
     allowed: PANEL_ROLES,
   },
@@ -23,7 +23,7 @@ const MODES = [
     href: "/player",
     title: "Modo streamer",
     description:
-      "Reproductor con la canción actual, control de volumen y avance al terminar.",
+      "Reproductor de tu cola: la música empieza y avanza sola mientras los moderadores añaden canciones.",
     icon: Headphones,
     allowed: PLAYER_ROLES,
   },

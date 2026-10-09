@@ -40,9 +40,9 @@ interface UserRow {
 }
 
 const ROLES: Array<{ value: Role; label: string; hint: string }> = [
-  { value: "admin", label: "Administrador", hint: "Panel, reproductor y usuarios" },
-  { value: "mod", label: "Moderador", hint: "Panel y reproductor" },
-  { value: "streamer", label: "Streamer", hint: "Solo el reproductor" },
+  { value: "admin", label: "Administrador", hint: "Todas las colas y usuarios" },
+  { value: "mod", label: "Moderador", hint: "Gestiona todas las colas" },
+  { value: "streamer", label: "Streamer", hint: "Reproduce su propia cola" },
 ]
 
 const EMPTY = { username: "", password: "", role: "mod" as Role }
@@ -160,8 +160,9 @@ export function UsersManager() {
             Usuarios
           </CardTitle>
           <CardDescription>
-            Cualquier usuario con acceso puede entrar al panel y gestionar la cola.
-            Las contraseñas no se pueden leer, solo cambiar.
+            Cada streamer tiene su propia cola: los administradores y moderadores
+            eligen cuál gestionar desde el panel. Las contraseñas no se pueden
+            leer, solo cambiar.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -192,8 +193,8 @@ export function UsersManager() {
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {user.songsAdded} canción{user.songsAdded === 1 ? "" : "es"} añadida
-                      {user.songsAdded === 1 ? "" : "s"}
+                      {user.songsAdded}{" "}
+                      {user.songsAdded === 1 ? "canción añadida" : "canciones añadidas"}
                     </p>
                   </div>
                   <Button
@@ -238,7 +239,7 @@ export function UsersManager() {
                 <DialogHeader>
                   <DialogTitle>Nuevo usuario</DialogTitle>
                   <DialogDescription>
-                    Podrá entrar al panel y gestionar la cola.
+                    Si es streamer, tendrá su propia cola de reproducción.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
@@ -394,6 +395,8 @@ export function UsersManager() {
             <DialogDescription>
               Se va a eliminar &quot;{removing?.username}&quot;. Las canciones que
               añadió se quedan en la cola, pero sin autor.
+              {removing?.role === "streamer" &&
+                " Al ser streamer, su propia cola y su historial se borran con él."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
