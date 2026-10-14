@@ -24,6 +24,8 @@ const LAST_STREAMER_KEY = "ytstrnek.lastStreamer"
 interface ModDashboardProps {
   username: string
   canManageUsers: boolean
+  /** Si puede alternar entre panel y reproductor (admin/mod). Un streamer no. */
+  canSwitchMode: boolean
   streamers: Streamer[]
   /** Streamer con el que abrir el panel, o null si todavía no hay ninguno. */
   initialStreamerId: string | null
@@ -46,6 +48,7 @@ export function ModDashboard(props: ModDashboardProps) {
 function ModDashboardContent({
   username,
   canManageUsers,
+  canSwitchMode,
   streamers,
   initialStreamerId,
   fromUrl,
@@ -105,25 +108,33 @@ function ModDashboardContent({
 
   const streamer = streamers.find((s) => s.id === streamerId) ?? null
 
+  const brandLogo = (
+    <Image
+      src="/logo-koi.png"
+      alt="yt-str-nek"
+      width={120}
+      height={32}
+      className="h-7 w-auto"
+      priority
+    />
+  )
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              transitionTypes={["nav-back"]}
-              className="flex items-center gap-1.5"
-            >
-              <Image
-                src="/logo-koi.png"
-                alt="yt-str-nek"
-                width={120}
-                height={32}
-                className="h-7 w-auto"
-                priority
-              />
-            </Link>
+            {canSwitchMode ? (
+              <Link
+                href="/"
+                transitionTypes={["nav-back"]}
+                className="flex items-center gap-1.5"
+              >
+                {brandLogo}
+              </Link>
+            ) : (
+              brandLogo
+            )}
             <span className="text-xs text-muted-foreground">· {username}</span>
           </div>
           <div className="flex items-center gap-1">
@@ -163,7 +174,7 @@ function ModDashboardContent({
           </div>
         </div>
 
-        {streamer && (
+        {streamer && streamers.length > 1 && (
           <div className="border-t border-border/60">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
               <StreamerSelect

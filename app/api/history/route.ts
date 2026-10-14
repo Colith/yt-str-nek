@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
   const historyId = typeof body.id === "string" ? body.id : null
   if (!historyId) {
-    return NextResponse.json({ error: "Cancción no indicada" }, { status: 400 })
+    return NextResponse.json({ error: "Canción no indicada" }, { status: 400 })
   }
 
   const historyItem = await prisma.historyItem.findUnique({
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
   const song = await upsertSong(historyItem.song.youtubeId)
   if (!song) {
-    return NextResponse.json({ error: "El vídeo ya no está disponible" }, { status: 404 })
+    return NextResponse.json({ error: "El video ya no está disponible" }, { status: 404 })
   }
 
   const item = await prisma.queueItem.create({

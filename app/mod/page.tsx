@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getSession, hasRole, PANEL_ACCESS_ROLES } from "@/lib/auth"
+import { getSession, hasRole, PANEL_ACCESS_ROLES, PANEL_ROLES } from "@/lib/auth"
 import { listStreamers } from "@/lib/streamers"
 import { ModDashboard } from "@/components/queue/mod-dashboard"
 
@@ -29,6 +29,7 @@ export default async function ModPage({
     <ModDashboard
       username={session.username}
       canManageUsers={session.role === "admin"}
+      canSwitchMode={hasRole(session, PANEL_ROLES)}
       streamers={streamers}
       initialStreamerId={initialStreamerId}
       fromUrl={fromUrl}

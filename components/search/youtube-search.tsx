@@ -22,8 +22,8 @@ function ResultRow({
   const [adding, setAdding] = useState(false)
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/60 p-3 transition-colors hover:border-primary/40 sm:flex-row sm:items-center min-w-0">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+    <li className="flex min-w-0 flex-col gap-3 rounded-lg border border-border/60 bg-card/60 p-3 transition-colors hover:border-primary/40">
+      <div className="flex min-w-0 items-start gap-3">
         {result.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -36,8 +36,8 @@ function ResultRow({
             <Music4 className="h-5 w-5 text-muted-foreground" />
           </div>
         )}
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium" title={result.title}>
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 break-words text-sm font-medium" title={result.title}>
             {result.title}
           </p>
           <p className="truncate text-xs text-muted-foreground">
@@ -47,12 +47,12 @@ function ResultRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex items-center gap-2">
         <Input
           value={requester}
           onChange={(e) => setRequester(e.target.value)}
           placeholder="Pedido por (opcional)"
-          className="h-9 w-full text-sm sm:w-40"
+          className="h-9 flex-1 text-sm sm:max-w-60"
           maxLength={50}
         />
         <Button
@@ -144,7 +144,7 @@ export function YoutubeSearch({
 
         {preloaded && (
           <div className="rounded-lg border border-primary/50 bg-accent/50 p-3">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Vídeo cargado desde el enlace</p>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Video cargado desde el enlace</p>
             <ul>
               <ResultRow result={preloaded} onAdd={onAdd} disabled={disabled} />
             </ul>

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation"
 import {
   CirclePlay,
   Headphones,
-  Home,
   ListMusic,
   MonitorPlay,
   Pause,
@@ -697,14 +696,6 @@ function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-3 p-4">
       <div className="flex items-center justify-between gap-3 px-2">
         <div className="flex min-w-0 items-center gap-3">
-          <Link
-            href="/"
-            transitionTypes={["nav-back"]}
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Cambiar de modo</span>
-          </Link>
           {canModerate && (
             <Link
               href={`/mod?streamer=${encodeURIComponent(streamer.id)}`}
@@ -789,7 +780,7 @@ function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps
             >
               {showVideo ? <Headphones /> : <MonitorPlay />}
               <span className="hidden sm:inline">
-                {showVideo ? "Solo audio" : "Ver vídeo"}
+                {showVideo ? "Solo audio" : "Ver video"}
               </span>
             </Button>
           </div>

@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   const song = await upsertSong(youtubeId)
   if (!song) {
     return NextResponse.json(
-      { error: "No se encontró el vídeo en YouTube" },
+      { error: "No se encontró el video en YouTube" },
       { status: 404 }
     )
   }

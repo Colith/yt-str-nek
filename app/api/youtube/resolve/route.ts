@@ -12,13 +12,13 @@ export async function POST(req: Request) {
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
-    return NextResponse.json({ error: "Pega el enlace del vídeo" }, { status: 400 })
+    return NextResponse.json({ error: "Pega el enlace del video" }, { status: 400 })
   }
 
   const id = extractYoutubeId(parsed.data.url)
   if (!id) {
     return NextResponse.json(
-      { error: "Ese enlace no es un vídeo de YouTube válido" },
+      { error: "Ese enlace no es un video de YouTube válido" },
       { status: 400 }
     )
   }
@@ -34,14 +34,14 @@ export async function POST(req: Request) {
     const video = await getVideoDetails(id)
     if (!video) {
       return NextResponse.json(
-        { error: "No se encontró el vídeo. Revisa el enlace." },
+        { error: "No se encontró el video. Revisa el enlace." },
         { status: 404 }
       )
     }
     return NextResponse.json({ video })
   } catch {
     return NextResponse.json(
-      { error: "No se pudo obtener el vídeo. Intenta de nuevo." },
+      { error: "No se pudo obtener el video. Intenta de nuevo." },
       { status: 502 }
     )
   }

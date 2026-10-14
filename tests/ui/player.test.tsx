@@ -511,7 +511,7 @@ describe("controles", () => {
     await openPlayer()
     await startPlaying()
 
-    fireEvent.click(screen.getByRole("button", { name: "Ver vídeo" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ver video" }))
     expect(screen.getByRole("button", { name: "Solo audio" })).toBeInTheDocument()
 
     expect(FakePlayer.instances).toHaveLength(1)

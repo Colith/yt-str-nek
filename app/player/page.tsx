@@ -55,7 +55,7 @@ export default async function PlayerPage({
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <Home className="h-4 w-4" />
-          Cambiar de modo
+          Inicio
         </Link>
         <Card className="border-2 border-border/60">
           <CardContent className="space-y-4 py-6">

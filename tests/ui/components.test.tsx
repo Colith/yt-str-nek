@@ -254,7 +254,7 @@ describe("YoutubeSearch", () => {
     const clearPreloaded = vi.fn()
     renderSearch({ preloaded: result("p", "Del enlace"), clearPreloaded })
 
-    expect(screen.getByText("Vídeo cargado desde el enlace")).toBeInTheDocument()
+    expect(screen.getByText("Video cargado desde el enlace")).toBeInTheDocument()
     expect(screen.getByText("Del enlace")).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Limpiar" }))
@@ -272,15 +272,15 @@ describe("AddByUrlForm", () => {
       screen.getByPlaceholderText("https://www.youtube.com/watch?v=..."),
       "https://youtu.be/a"
     )
-    await userEvent.click(screen.getByRole("button", { name: "Cargar vídeo" }))
+    await userEvent.click(screen.getByRole("button", { name: "Cargar video" }))
 
     await waitFor(() => expect(onResolved).toHaveBeenCalledWith(result("a", "Del enlace")))
     expect(api.to("POST", "/api/youtube/resolve")[0].body).toEqual({ url: "https://youtu.be/a" })
-    expect(toast.success).toHaveBeenCalledWith("Vídeo cargado")
+    expect(toast.success).toHaveBeenCalledWith("Video cargado")
   })
 
   it("muestra el error del servidor y no entrega nada", async () => {
-    mockApi(() => ({ status: 400, body: { error: "Ese enlace no es un vídeo de YouTube válido" } }))
+    mockApi(() => ({ status: 400, body: { error: "Ese enlace no es un video de YouTube válido" } }))
     const onResolved = vi.fn()
     render(<AddByUrlForm onResolved={onResolved} disabled={false} />)
 
@@ -288,10 +288,10 @@ describe("AddByUrlForm", () => {
       screen.getByPlaceholderText("https://www.youtube.com/watch?v=..."),
       "https://vimeo.com/1"
     )
-    await userEvent.click(screen.getByRole("button", { name: "Cargar vídeo" }))
+    await userEvent.click(screen.getByRole("button", { name: "Cargar video" }))
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Ese enlace no es un vídeo de YouTube válido")
+      expect(toast.error).toHaveBeenCalledWith("Ese enlace no es un video de YouTube válido")
     )
     expect(onResolved).not.toHaveBeenCalled()
   })
@@ -299,7 +299,7 @@ describe("AddByUrlForm", () => {
   it("con la cola llena el botón queda desactivado", () => {
     render(<AddByUrlForm onResolved={vi.fn()} disabled />)
 
-    expect(screen.getByRole("button", { name: "Cargar vídeo" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Cargar video" })).toBeDisabled()
   })
 })
 

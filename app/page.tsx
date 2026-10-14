@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle"
 
 export const metadata = {
   title: "yt-str-nek",
-  description: "Gestor de cola de música para moderadores",
+  description: "Gestor de cola de música para streamers y moderadores",
 }
 
 const MODES = [

@@ -17,7 +17,7 @@ const notoSerifJP = Noto_Serif_JP({
 
 export const metadata: Metadata = {
   title: "yt-str-nek",
-  description: "Gestor de cola de música para moderadores",
+  description: "Gestor de cola de música para streamers y moderadores",
   icons: {
     icon: [
       { url: "/favicon-512.png", sizes: "512x512" },

@@ -110,7 +110,7 @@ describe("useQueue", () => {
   it("muestra el error del servidor si rechaza el alta", async () => {
     queueServer({ s1: [] }, (call) =>
       call.method === "POST"
-        ? { status: 404, body: { error: "No se encontró el vídeo en YouTube" } }
+        ? { status: 404, body: { error: "No se encontró el video en YouTube" } }
         : undefined
     )
     const { result } = renderHook(() => useQueue("s1"))
@@ -118,7 +118,7 @@ describe("useQueue", () => {
 
     await act(() => result.current.addSong(VIDEO, ""))
 
-    expect(toast.error).toHaveBeenCalledWith("No se encontró el vídeo en YouTube")
+    expect(toast.error).toHaveBeenCalledWith("No se encontró el video en YouTube")
     expect(toast.success).not.toHaveBeenCalled()
   })
 
