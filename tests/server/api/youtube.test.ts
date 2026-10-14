@@ -58,9 +58,15 @@ describe("GET /api/youtube/search", () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("responde 502 si YouTube falla y 503 si falta la API key", async () => {
+  it("traduce la cuota agotada, el fallo genérico y la falta de clave", async () => {
     await signInAsNew("mod")
-    mockYoutubeApi([], { failSearch: true })
+
+    mockYoutubeApi([], { failSearch: "quota" })
+    const quota = await find("algo")
+    expect(quota.status).toBe(429)
+    expect((await readJson(quota)).error).toMatch(/cuota/i)
+
+    mockYoutubeApi([], { failSearch: "http" })
     expect((await find("algo")).status).toBe(502)
 
     vi.stubEnv("YOUTUBE_API_KEY", "")

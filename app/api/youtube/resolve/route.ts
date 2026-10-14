@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { requireRoles, PANEL_ACCESS_ROLES } from "@/lib/authorize"
-import { extractYoutubeId, getVideoDetails } from "@/lib/youtube"
+import { extractYoutubeId, getVideoDetails, youtubeApiKeys } from "@/lib/youtube"
 
 const bodySchema = z.object({ url: z.string().trim().min(1) })
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     )
   }
 
-  if (!process.env.YOUTUBE_API_KEY) {
+  if (youtubeApiKeys().length === 0) {
     return NextResponse.json(
       { error: "YOUTUBE_API_KEY no está configurada en el servidor" },
       { status: 503 }

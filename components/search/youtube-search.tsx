@@ -86,9 +86,23 @@ export function YoutubeSearch({
   const [results, setResults] = useState<YoutubeResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  // La búsqueda de YouTube gasta una cuota diaria corta: se guarda cada
+  // consulta para no repetir la misma petición, y solo se busca al enviar el
+  // formulario (Enter o el botón), no en cada tecla.
+  const cacheRef = useRef(new Map<string, YoutubeResult[]>())
 
-  async function doSearch(q: string) {
+  async function search(raw: string) {
+    const q = raw.trim()
+    if (q.length < 2) return
+
+    const key = q.toLowerCase()
+    const cached = cacheRef.current.get(key)
+    if (cached) {
+      setResults(cached)
+      setSearched(true)
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(q)}`)
@@ -97,7 +111,9 @@ export function YoutubeSearch({
         toast.error(data.error)
         setResults([])
       } else {
-        setResults(data.results || [])
+        const list: YoutubeResult[] = data.results || []
+        cacheRef.current.set(key, list)
+        setResults(list)
       }
       setSearched(true)
     } catch {
@@ -120,26 +136,27 @@ export function YoutubeSearch({
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (debounceRef.current) clearTimeout(debounceRef.current)
-            if (query.trim().length >= 2) doSearch(query.trim())
+            search(query)
           }}
+          className="flex items-center gap-2"
         >
           <Input
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
-              const q = e.target.value.trim()
-              if (debounceRef.current) clearTimeout(debounceRef.current)
-              if (q.length >= 2) {
-                debounceRef.current = setTimeout(() => doSearch(q), 500)
-              } else if (q.length === 0) {
+              if (e.target.value.trim() === "") {
                 setResults([])
                 setSearched(false)
               }
             }}
             placeholder="Título de la canción o artista..."
+            aria-label="Buscar en YouTube"
             disabled={disabled}
           />
+          <Button type="submit" disabled={disabled || loading || query.trim().length < 2}>
+            <Search className="h-4 w-4" />
+            <span className="sr-only">Buscar</span>
+          </Button>
         </form>
 
         {preloaded && (

@@ -76,10 +76,61 @@ interface VideosApiResponse {
   items?: VideosApiItem[]
 }
 
-function requireApiKey(): string {
-  const apiKey = process.env.YOUTUBE_API_KEY
-  if (!apiKey) throw new Error("YOUTUBE_API_KEY no configurada")
-  return apiKey
+/** Claves de YouTube configuradas, en orden de preferencia. */
+export function youtubeApiKeys(): string[] {
+  return [process.env.YOUTUBE_API_KEY, process.env.YOUTUBE_API_KEY_2]
+    .map((key) => key?.trim())
+    .filter((key): key is string => Boolean(key))
+}
+
+interface GoogleErrorPayload {
+  error?: {
+    code?: number
+    message?: string
+    errors?: { reason?: string }[]
+  }
+}
+
+/**
+ * Error de la API de YouTube, con el motivo real que devuelve Google.
+ *
+ * El endpoint de búsqueda lo traduce a un mensaje útil (cuota agotada, clave
+ * inválida...) en vez de un 502 genérico que no dice nada.
+ */
+export class YoutubeApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly reason: string | null
+  ) {
+    super(message)
+    this.name = "YoutubeApiError"
+  }
+
+  /** ¿El problema es que se agotó la cuota (diaria o por minuto)? */
+  get isQuota(): boolean {
+    return (
+      this.status === 429 ||
+      this.reason === "quotaExceeded" ||
+      this.reason === "dailyLimitExceeded" ||
+      this.reason === "rateLimitExceeded"
+    )
+  }
+}
+
+async function youtubeError(res: Response): Promise<YoutubeApiError> {
+  let payload: GoogleErrorPayload | null = null
+  try {
+    payload = (await res.json()) as GoogleErrorPayload
+  } catch {
+    // Sin cuerpo JSON: nos quedamos con el estado HTTP.
+  }
+  const error = payload?.error
+  return new YoutubeApiError(
+    error?.message ?? `YouTube respondió ${res.status}`,
+    error?.code ?? res.status,
+    error?.errors?.[0]?.reason ?? null
+  )
 }
 
 function toResult(id: string, snippet: ApiSnippet, durationSec: number | null): YoutubeResult {
@@ -92,9 +143,7 @@ function toResult(id: string, snippet: ApiSnippet, durationSec: number | null): 
   }
 }
 
-export async function searchYoutube(query: string): Promise<YoutubeResult[]> {
-  const apiKey = requireApiKey()
-
+async function searchWithKey(apiKey: string, query: string): Promise<YoutubeResult[]> {
   const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search")
   searchUrl.searchParams.set("key", apiKey)
   searchUrl.searchParams.set("q", query)
@@ -103,7 +152,7 @@ export async function searchYoutube(query: string): Promise<YoutubeResult[]> {
   searchUrl.searchParams.set("maxResults", "10")
 
   const res = await fetch(searchUrl.toString())
-  if (!res.ok) throw new Error("Error al buscar en YouTube")
+  if (!res.ok) throw await youtubeError(res)
 
   const data = (await res.json()) as SearchApiResponse
   const items = data.items || []
@@ -136,21 +185,52 @@ export async function searchYoutube(query: string): Promise<YoutubeResult[]> {
     .filter((r): r is YoutubeResult => r !== null)
 }
 
+/**
+ * Busca vídeos. Si la clave principal agotó su cuota y hay una de reserva
+ * (`YOUTUBE_API_KEY_2`), se reintenta con ella para no quedarse sin búsqueda.
+ */
+export async function searchYoutube(query: string): Promise<YoutubeResult[]> {
+  const keys = youtubeApiKeys()
+  if (keys.length === 0) throw new Error("YOUTUBE_API_KEY no configurada")
+
+  let lastError: unknown
+  for (const [index, apiKey] of keys.entries()) {
+    try {
+      return await searchWithKey(apiKey, query)
+    } catch (error) {
+      lastError = error
+      const retry = error instanceof YoutubeApiError && error.isQuota && index < keys.length - 1
+      if (!retry) throw error
+    }
+  }
+  throw lastError
+}
+
 export async function getVideoDetails(youtubeId: string): Promise<YoutubeResult | null> {
-  const apiKey = requireApiKey()
+  const keys = youtubeApiKeys()
+  if (keys.length === 0) throw new Error("YOUTUBE_API_KEY no configurada")
 
-  const url = new URL("https://www.googleapis.com/youtube/v3/videos")
-  url.searchParams.set("key", apiKey)
-  url.searchParams.set("part", "snippet,contentDetails")
-  url.searchParams.set("id", youtubeId)
+  for (const [index, apiKey] of keys.entries()) {
+    const url = new URL("https://www.googleapis.com/youtube/v3/videos")
+    url.searchParams.set("key", apiKey)
+    url.searchParams.set("part", "snippet,contentDetails")
+    url.searchParams.set("id", youtubeId)
 
-  const res = await fetch(url.toString())
-  if (!res.ok) return null
+    const res = await fetch(url.toString())
+    if (res.ok) {
+      const data = (await res.json()) as VideosApiResponse
+      const item = data.items?.[0]
+      if (!item?.id) return null
 
-  const data = (await res.json()) as VideosApiResponse
-  const item = data.items?.[0]
-  if (!item?.id) return null
+      const duration = item.contentDetails?.duration
+      return toResult(item.id, item.snippet || {}, duration ? parseDuration(duration) : null)
+    }
 
-  const duration = item.contentDetails?.duration
-  return toResult(item.id, item.snippet || {}, duration ? parseDuration(duration) : null)
+    // Un fallo normal (vídeo inexistente, error puntual...) no se reintenta;
+    // solo se prueba la clave de reserva si lo que falló fue la cuota.
+    const error = await youtubeError(res)
+    if (!error.isQuota || index === keys.length - 1) return null
+  }
+
+  return null
 }

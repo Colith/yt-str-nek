@@ -252,6 +252,7 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 | `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate y por el seed |
 | `AUTH_SECRET` | Clave para firmar la sesión. Genera con `openssl rand -base64 32` |
 | `YOUTUBE_API_KEY` | Clave de la YouTube Data API v3 (necesaria para buscar y resolver vídeos) |
+| `YOUTUBE_API_KEY_2` | Opcional: segunda clave (otro proyecto) para repartir la cuota diaria de búsquedas |
 | `SEED_USERNAME` | Usuario inicial que crea `npm run db:seed` |
 | `SEED_PASSWORD` | Contraseña del usuario inicial |
 | `SEED_ROLE` | Rol del usuario inicial: `admin`, `mod` o `streamer`. Por defecto `admin` |
@@ -265,6 +266,19 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 5. Copia la clave a `.env` como `YOUTUBE_API_KEY`.
 
 Sin esta clave, añadir canciones por enlace y la búsqueda devolverán un error indicando que falta configurarla.
+
+La búsqueda usa el endpoint `search` de la API, que tiene una **cuota diaria
+corta** (Google aplica un límite de consultas de búsqueda al día por proyecto).
+Para no agotarla:
+
+- El panel busca **al enviar** (Enter o el botón), no en cada tecla.
+- Cada consulta repetida se resuelve desde la caché del navegador.
+- Si se agota, el panel lo dice claramente y sugiere añadir la canción pegando el
+  enlace (que usa otro endpoint, con más margen).
+
+Si tienes más de un proyecto de Google Cloud, pon el segundo en
+`YOUTUBE_API_KEY_2`: cuando la clave principal agota su cuota, se reintenta sola
+con la de reserva.
 
 ## Despliegue en Vercel
 
@@ -300,6 +314,43 @@ Para crear el primer usuario en producción, define `SEED_USERNAME` y `SEED_PASS
 | `npm run prisma:migrate` | Crea una migración en desarrollo y regenera el cliente |
 | `npm run db:migrate` | Aplica las migraciones pendientes (en local, a mano) |
 | `bash scripts/prod-bootstrap.sh <url> [usuario]` | Aplica migraciones y crea/actualiza un mod contra otra base |
+
+### Fondo de arte
+
+El fondo es una **imagen monocroma** raster (`public/art/manga-art.png`) o
+vectorial (`public/art/manga-tile.svg`), generada desde una carpeta de imágenes:
+
+```bash
+python3 scripts/build-art.py [carpeta]              # vectores (SVG)
+python3 scripts/build-art.py [carpeta] --raster      # sin vectorizar (PNG)
+```
+
+Deja cada imagen en blanco y negro puro con **umbral adaptativo** (cada zona se
+corta contra su entorno, así las zonas oscuras conservan textura y detalle).
+Con `vtracer`, con **una sola** imagen genera esa imagen y con **varias** las
+reparte en un `tile` repetible; con `--raster` se salta la vectorización y sale
+un PNG a `RASTER_SIZE` (1920 px) con bordes suavizados (supersample `RASTER_SS` y
+4 bits por canal). En la web se usa como máscara CSS, así que toma el color del
+tema sin invertir nada; la presencia se controla con `--art-opacity` en
+`app/globals.css` y el detalle con `TRACE_SIZE`, `LAT_WINDOW` y, en raster,
+`RASTER_SIZE`/`RASTER_SS` en el script.
+
+Requiere ImageMagick 7 (`magick`) y `vtracer` (`pip install vtracer`).
+
+### Menú de Apariencia: modo normal y modo otaku
+
+El botón de paleta de la cabecera (portada, `/mod`, `/player` y `/users`) abre el
+**Menú de Apariencia**, con dos ajustes guardados **en la cuenta**:
+
+- **Tema**: claro, oscuro o el del sistema (`next-themes`).
+- **Fondo**: **modo normal** (diseño limpio, sin ilustración) o **modo otaku**
+  (con la ilustración de manga detrás del contenido).
+
+El fondo elegido se guarda en la columna `User.artStyle` (`"normal"` por
+defecto). Al cargar, `app/layout.tsx` lo lee y lo pinta como `data-art` en el
+`<html>`; el CSS enseña la ilustración solo bajo `html[data-art="otaku"]`. El
+cambio se aplica al vuelo con `PUT /api/me/style`, sin recargar. Como el layout
+depende de la sesión, todas las páginas se renderizan en el servidor a petición.
 
 ### Preparar la base de producción
 
