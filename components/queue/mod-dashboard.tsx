@@ -12,7 +12,7 @@ import { AddByUrlForm } from "@/components/search/add-by-url-form"
 import { QueueList } from "@/components/queue/queue-list"
 import { HistoryList } from "@/components/history/history-list"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { useQueue } from "@/hooks/use-queue"
 import { useQueueSync } from "@/hooks/use-queue-sync"
@@ -158,7 +158,7 @@ function ModDashboardContent({
                 <span className="hidden sm:inline">Usuarios</span>
               </Link>
             )}
-            <ThemeToggle />
+            <AppearanceMenu />
             <Button
               variant="ghost"
               size="icon"

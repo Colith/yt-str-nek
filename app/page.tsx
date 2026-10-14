@@ -5,7 +5,7 @@ import { Headphones, LogOut, ShieldCheck } from "lucide-react"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
 import { PageTransition } from "@/components/ui/view-transition"
 import { getSession, hasRole, PANEL_ROLES } from "@/lib/auth"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
 
 export const metadata = {
   title: "yt-str-nek",
@@ -44,7 +44,7 @@ export default async function Home() {
     <PageTransition>
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 p-6">
         <div className="flex justify-end">
-          <ThemeToggle />
+          <AppearanceMenu />
         </div>
         <div className="text-center">
           <div className="mx-auto mb-3 flex justify-center">

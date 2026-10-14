@@ -1,21 +1,22 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { HistoryList } from "@/components/history/history-list"
 import { QueueList } from "@/components/queue/queue-list"
 import { SakuraPetals } from "@/components/sakura/sakura-petals"
+import { MangaArtwork } from "@/components/background/manga-artwork"
 import { AddByUrlForm } from "@/components/search/add-by-url-form"
 import { YoutubeSearch } from "@/components/search/youtube-search"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import type { HistoryItem, QueueItem, YoutubeResult } from "@/types"
 import { mockApi } from "../helpers/fetch"
 
 const setTheme = vi.fn()
-let resolvedTheme: string | undefined = "light"
+let theme: string | undefined = "light"
 vi.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme, setTheme }),
+  useTheme: () => ({ theme, setTheme }),
 }))
 
 const song = (id: string, title: string, durationSec: number | null = 200) => ({
@@ -165,38 +166,34 @@ describe("YoutubeSearch", () => {
       />
     )
 
-  it("busca al dejar de escribir, sin lanzar una petición por tecla", async () => {
-    vi.useFakeTimers()
+  it("busca al enviar, no en cada tecla, y reutiliza el resultado guardado", async () => {
     const api = mockApi(() => ({ body: { results: [result("a", "Encontrada")] } }))
     renderSearch()
     const input = screen.getByPlaceholderText("Título de la canción o artista...")
 
-    fireEvent.change(input, { target: { value: "ca" } })
-    fireEvent.change(input, { target: { value: "can" } })
-    fireEvent.change(input, { target: { value: "canción" } })
+    await userEvent.type(input, "canción")
     expect(api.calls).toHaveLength(0)
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(500)
-    })
+    await userEvent.type(input, "{Enter}")
 
     expect(api.calls).toHaveLength(1)
     expect(api.calls[0].query.get("q")).toBe("canción")
     expect(screen.getByText("Encontrada")).toBeInTheDocument()
     expect(screen.getByText(/1:35/)).toBeInTheDocument()
+
+    // Buscar lo mismo otra vez no vuelve a gastar cuota de YouTube.
+    await userEvent.type(input, "{Enter}")
+    expect(api.calls).toHaveLength(1)
   })
 
   it("no busca con menos de 2 caracteres", async () => {
-    vi.useFakeTimers()
     const api = mockApi(() => ({ body: { results: [] } }))
     renderSearch()
 
-    fireEvent.change(screen.getByPlaceholderText("Título de la canción o artista..."), {
-      target: { value: "a" },
-    })
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000)
-    })
+    await userEvent.type(
+      screen.getByPlaceholderText("Título de la canción o artista..."),
+      "a{Enter}"
+    )
 
     expect(api.calls).toHaveLength(0)
   })
@@ -329,25 +326,54 @@ describe("StreamerSelect", () => {
   })
 })
 
-describe("ThemeToggle", () => {
-  it("cambia al tema contrario del actual", async () => {
-    resolvedTheme = "light"
-    const { unmount } = render(<ThemeToggle />)
-    await userEvent.click(screen.getByRole("button", { name: "Cambiar entre tema claro y oscuro" }))
-    expect(setTheme).toHaveBeenLastCalledWith("dark")
-    unmount()
+describe("AppearanceMenu", () => {
+  it("cambia el tema desde el menú", async () => {
+    theme = "light"
+    const user = userEvent.setup()
+    render(<AppearanceMenu />)
 
-    resolvedTheme = "dark"
-    render(<ThemeToggle />)
-    await userEvent.click(screen.getByRole("button", { name: "Cambiar entre tema claro y oscuro" }))
-    expect(setTheme).toHaveBeenLastCalledWith("light")
+    await user.click(screen.getByRole("button", { name: "Apariencia" }))
+    await user.click(await screen.findByRole("menuitemradio", { name: /Oscuro/ }))
+
+    expect(setTheme).toHaveBeenCalledWith("dark")
   })
 
-  it("pinta lo mismo sea cual sea el tema, para no romper la hidratación", () => {
-    resolvedTheme = undefined
-    const server = render(<ThemeToggle />).container.innerHTML
-    resolvedTheme = "dark"
-    const client = render(<ThemeToggle />).container.innerHTML
+  it("guarda el fondo en la cuenta y lo aplica al vuelo", async () => {
+    document.documentElement.dataset.art = "normal"
+    const api = mockApi(() => ({ body: { ok: true } }))
+    const user = userEvent.setup()
+    render(<AppearanceMenu />)
+
+    await user.click(screen.getByRole("button", { name: "Apariencia" }))
+    await user.click(await screen.findByRole("menuitemradio", { name: /Modo otaku/ }))
+
+    await waitFor(() => expect(api.to("PUT", "/api/me/style")).toHaveLength(1))
+    expect(api.to("PUT", "/api/me/style")[0].body).toEqual({ artStyle: "otaku" })
+    expect(document.documentElement.dataset.art).toBe("otaku")
+  })
+
+  it("si no se puede guardar, deja el fondo como estaba", async () => {
+    document.documentElement.dataset.art = "normal"
+    mockApi(() => ({ status: 500, body: { error: "boom" } }))
+    const user = userEvent.setup()
+    render(<AppearanceMenu />)
+
+    await user.click(screen.getByRole("button", { name: "Apariencia" }))
+    await user.click(await screen.findByRole("menuitemradio", { name: /Modo otaku/ }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(document.documentElement.dataset.art).toBe("normal")
+  })
+
+  it("pinta lo mismo sea cual sea el fondo, para no romper la hidratación", () => {
+    // base-ui genera un id interno distinto en cada render; el resto del
+    // marcado debe ser idéntico en servidor y cliente.
+    const withoutIds = (html: string) => html.replace(/id="[^"]*"/g, "")
+
+    document.documentElement.dataset.art = "normal"
+    const server = withoutIds(render(<AppearanceMenu />).container.innerHTML)
+    document.documentElement.dataset.art = "otaku"
+    const client = withoutIds(render(<AppearanceMenu />).container.innerHTML)
 
     expect(client).toBe(server)
   })
@@ -366,5 +392,17 @@ describe("SakuraPetals", () => {
     expect(petals()).toHaveLength(20)
 
     document.documentElement.classList.remove("dark")
+  })
+})
+
+describe("MangaArtwork", () => {
+  it("pinta una capa decorativa fija que no intercepta clics", () => {
+    const { container } = render(<MangaArtwork />)
+    const layer = container.querySelector(".manga-artwork")
+
+    expect(layer).not.toBeNull()
+    expect(layer).toHaveAttribute("aria-hidden", "true")
+    expect(layer?.className).toContain("pointer-events-none")
+    expect(layer?.className).toContain("fixed")
   })
 })

@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSong } from "@/app/api/player/current/route"
@@ -718,7 +718,7 @@ function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps
             Cola de <span className="font-medium text-foreground">{streamer.username}</span>
           </span>
         )}
-        <ThemeToggle />
+        <AppearanceMenu />
       </div>
 
       <Card className="gap-0 overflow-hidden border-2 border-border/60 py-0">

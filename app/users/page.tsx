@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { getSession, hasRole, ADMIN_ROLES } from "@/lib/auth"
 import { buttonVariants } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import { UsersManager } from "@/components/users/users-manager"
 import { PageTransition } from "@/components/ui/view-transition"
 
@@ -28,7 +28,7 @@ export default async function UsersPage() {
             <ArrowLeft className="h-4 w-4" />
             Volver al panel
           </Link>
-          <ThemeToggle />
+          <AppearanceMenu />
         </div>
 
         <UsersManager />

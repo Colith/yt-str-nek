@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createTestDatabase, migrationNames, migrationSql } from "../helpers/db"
 
 const PER_STREAMER = "20261008235900_queue_per_streamer"
+const ART_STYLE = "20261014131451_add_user_art_style"
 
 /** Base con el esquema anterior a las colas por streamer y datos de entonces. */
 async function legacyDatabase(users: string) {
@@ -20,7 +21,7 @@ async function legacyDatabase(users: string) {
 
 describe("migración a colas por streamer", () => {
   it("es la última migración del proyecto", () => {
-    expect(migrationNames().at(-1)).toBe(PER_STREAMER)
+    expect(migrationNames().at(-1)).toBe(ART_STYLE)
   })
 
   it("entrega la cola y el historial compartidos al streamer más antiguo", async () => {

@@ -23,7 +23,7 @@ vi.mock("@/components/player/player", () => ({ Player: () => null }))
 vi.mock("@/components/users/users-manager", () => ({
   UsersManager: () => <div>gestor de usuarios</div>,
 }))
-vi.mock("@/components/theme/theme-toggle", () => ({ ThemeToggle: () => null }))
+vi.mock("@/components/theme/appearance-menu", () => ({ AppearanceMenu: () => null }))
 
 const A = { id: "s1", username: "directo" }
 const B = { id: "s2", username: "otra" }
