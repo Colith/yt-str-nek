@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { requireRoles, PANEL_ROLES } from "@/lib/authorize"
+import { requireRoles, PANEL_ACCESS_ROLES } from "@/lib/authorize"
 import { searchYoutube } from "@/lib/youtube"
 
 export async function GET(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
 
   const { searchParams } = new URL(req.url)

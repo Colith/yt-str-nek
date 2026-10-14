@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import {
   ADMIN_ROLES,
+  PANEL_ACCESS_ROLES,
   PANEL_ROLES,
   PLAYER_ROLES,
   ROLES,
@@ -55,7 +56,7 @@ export async function verifyCredentials(
   return { id: user.id, username: user.username, role: user.role }
 }
 
-export { ROLES, PANEL_ROLES, ADMIN_ROLES, PLAYER_ROLES, hasRole }
+export { ROLES, PANEL_ROLES, PANEL_ACCESS_ROLES, ADMIN_ROLES, PLAYER_ROLES, hasRole }
 
 /** Convierte un valor en un rol válido, o null si no lo es. */
 export function parseRole(role: unknown): Role | null {

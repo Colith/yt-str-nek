@@ -17,21 +17,25 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - El volumen con el que escucha cada usuario se guarda en su cuenta y se recupera al entrar
 - Sincronización entre pestañas (sondeo cada 5 s + al recuperar el foco)
 - Acceso restringido por usuario y contraseña (sesión con cookie `httpOnly` firmada)
+- El acceso empieza por el login: sin sesión no hay portada, y al entrar se elige entre modo moderador y modo streamer
+- Un streamer también entra al panel para añadir sus propias canciones, sin depender de un moderador
 - Reproductor en `/player` para el streamer: la música empieza y avanza sola mientras los moderadores añaden canciones
+- Transiciones de vista al navegar entre el panel, el reproductor y la portada
 
 ## Páginas
 
 | Ruta | Para qué |
 | --- | --- |
-| `/` | Portada: elige modo moderador o modo streamer |
+| `/` | Portada tras entrar: elige modo moderador o modo streamer |
 | `/login` | Inicio de sesión |
-| `/mod` | Panel de moderadores: cola, búsqueda e historial del streamer elegido |
+| `/mod` | Panel: cola, búsqueda e historial de la cola elegida |
 | `/player` | Reproductor de la cola de un streamer |
 | `/users` | Gestión de usuarios, contraseñas y roles |
 
-`/mod`, `/player` y `/users` exigen sesión. Si entras sin ella, el login te devuelve a
-la página que intentabas abrir. La portada solo muestra los modos a los que tu rol tiene
-acceso.
+Todas las páginas menos `/login` exigen sesión: si entras sin ella, el proxy te lleva
+al login. Al iniciar sesión se abre la portada para elegir modo; un `streamer` no elige,
+se le redirige directamente a `/player`. Desde el panel y el reproductor se puede volver
+a la portada con **Cambiar de modo**.
 
 ## Roles
 
@@ -39,7 +43,11 @@ acceso.
 | --- | --- | --- | --- |
 | `admin` | Sí, todas las colas | Sí, cualquier cola | Sí |
 | `mod` | Sí, todas las colas | Sí, cualquier cola | No |
-| `streamer` | No | Solo la suya | No |
+| `streamer` | Sí, solo la suya | Solo la suya | No |
+
+Un `streamer` entra al panel igual que un moderador, pero el servidor le limita a su
+propia cola: puede buscar, añadir canciones, reordenar y marcar como reproducidas sin
+depender de nadie, y nunca ve las colas de los demás.
 
 El rol viaja dentro del JWT, así que un cambio de rol no invalida la sesión abierta:
 hay que volver a entrar para que el proxy lo tenga en cuenta.
@@ -59,9 +67,9 @@ las demás.
   Buscar, añadir por enlace, reordenar, marcar como reproducida y el historial actúan
   sobre ese streamer. La elección va en la URL (`/mod?streamer=<id>`) y el navegador
   recuerda la última.
-- **Un streamer** abre `/player` y recibe su propia cola, sin elegir nada. El servidor
-  ignora cualquier otro streamer que venga en la petición, así que no puede ver ni
-  avanzar la cola de otro.
+- **Un streamer** entra tanto a `/player` como al panel `/mod` y recibe su propia cola,
+  sin elegir nada. El servidor ignora cualquier otro streamer que venga en la petición,
+  así que no puede ver ni tocar la cola de otro.
 - Admin y mod también pueden abrir el reproductor de cualquier streamer con
   `/player?streamer=<id>`, o desde el botón **Reproductor** del panel.
 

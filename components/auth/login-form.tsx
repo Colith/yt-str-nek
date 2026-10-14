@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Flower2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function LoginFormInner() {
+export function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +38,9 @@ function LoginFormInner() {
       if (!res.ok) {
         setError(data.error || "Error al iniciar sesión");
       } else {
-        router.push(searchParams.get("callbackUrl") || "/mod");
+        // Siempre a la portada: allí se elige modo, y un streamer acaba
+        // redirigido a su reproductor sin pasar por la pantalla intermedia.
+        router.replace("/");
         router.refresh();
       }
     } catch {
@@ -56,7 +57,7 @@ function LoginFormInner() {
           <Flower2 className="h-10 w-10 text-primary" />
         </div>
         <CardTitle className="font-heading text-2xl">yt-str-nek</CardTitle>
-        <CardDescription>Acceso para moderadores</CardDescription>
+        <CardDescription>Acceso con usuario y contraseña</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -112,13 +113,5 @@ function LoginFormInner() {
         </form>
       </CardContent>
     </Card>
-  );
-}
-
-export function LoginForm() {
-  return (
-    <Suspense fallback={<div className="h-96 w-full max-w-sm" />}>
-      <LoginFormInner />
-    </Suspense>
   );
 }

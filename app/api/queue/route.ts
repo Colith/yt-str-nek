@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { requireRoles, PANEL_ROLES } from "@/lib/authorize"
+import { requireRoles, PANEL_ACCESS_ROLES } from "@/lib/authorize"
 import { prisma } from "@/lib/prisma"
 import { MAX_QUEUE, nextQueuePosition, upsertSong } from "@/lib/songs"
 import { resolveStreamerId } from "@/lib/streamers"
 import { addToQueueSchema } from "@/lib/validators"
 
 export async function GET(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
 
   const target = await resolveStreamerId(
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
   const { session } = guard
 

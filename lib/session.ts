@@ -21,7 +21,7 @@ export interface SessionUser {
  * Roles:
  * - admin:    panel, reproductor y gestión de usuarios
  * - mod:      panel y reproductor
- * - streamer: solo el reproductor
+ * - streamer: su propio panel y su reproductor
  *
  * El rol viaja dentro del JWT, por eso vive aquí y no en lib/auth: el proxy
  * necesita comprobarlo sin arrastrar Prisma.
@@ -29,7 +29,24 @@ export interface SessionUser {
 export const ROLES = ["admin", "mod", "streamer"] as const
 export type Role = (typeof ROLES)[number]
 
+/**
+ * Quién puede gestionar la cola de *cualquier* streamer.
+ *
+ * Es la lista que usan `listStreamers` y `resolveStreamerId`: admin y mod
+ * eligen la cola que abren, mientras que un streamer siempre actúa sobre la
+ * suya, pida lo que pida.
+ */
 export const PANEL_ROLES: readonly Role[] = ["admin", "mod"]
+
+/**
+ * Quién puede abrir el panel /mod y sus API.
+ *
+ * Un streamer entra en el panel, pero solo ve y toca su propia cola: el
+ * scoping lo hace `resolveStreamerId`. Así puede añadir sus propias canciones
+ * sin depender de un moderador.
+ */
+export const PANEL_ACCESS_ROLES: readonly Role[] = ["admin", "mod", "streamer"]
+
 export const ADMIN_ROLES: readonly Role[] = ["admin"]
 export const PLAYER_ROLES: readonly Role[] = ["admin", "mod", "streamer"]
 

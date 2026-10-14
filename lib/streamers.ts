@@ -50,3 +50,15 @@ export async function resolveStreamerId(
 
   return { streamerId: streamer.id }
 }
+
+/**
+ * ¿Puede la sesión tocar la cola o el historial de este streamer?
+ *
+ * Admin y mod pueden con cualquiera; un streamer, solo con la suya. Lo usan
+ * las rutas que reciben un id de una entrada ya existente (borrar de la cola,
+ * reañadir del historial): sin esta comprobación un streamer podría tocar la
+ * de otro adivinando un id.
+ */
+export function canAccessStreamer(session: SessionUser, streamerId: string): boolean {
+  return hasRole(session, PANEL_ROLES) || session.id === streamerId
+}

@@ -13,6 +13,7 @@ import { QueueList } from "@/components/queue/queue-list"
 import { HistoryList } from "@/components/history/history-list"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { useQueue } from "@/hooks/use-queue"
 import { useQueueSync } from "@/hooks/use-queue-sync"
 import { MAX_QUEUE, type Streamer, type YoutubeResult } from "@/types"
@@ -20,13 +21,7 @@ import { MAX_QUEUE, type Streamer, type YoutubeResult } from "@/types"
 /** Recuerda el último streamer que gestionó este navegador. */
 const LAST_STREAMER_KEY = "ytstrnek.lastStreamer"
 
-export function ModDashboard({
-  username,
-  canManageUsers,
-  streamers,
-  initialStreamerId,
-  fromUrl,
-}: {
+interface ModDashboardProps {
   username: string
   canManageUsers: boolean
   streamers: Streamer[]
@@ -34,7 +29,27 @@ export function ModDashboard({
   initialStreamerId: string | null
   /** Si el streamer venía pedido en la URL: entonces manda sobre lo recordado. */
   fromUrl: boolean
-}) {
+}
+
+/**
+ * El panel se envuelve en una transición de vista para que la navegación hacia
+ * y desde el reproductor tenga una animación direccional.
+ */
+export function ModDashboard(props: ModDashboardProps) {
+  return (
+    <ViewTransition {...NAV_TRANSITION}>
+      <ModDashboardContent {...props} />
+    </ViewTransition>
+  )
+}
+
+function ModDashboardContent({
+  username,
+  canManageUsers,
+  streamers,
+  initialStreamerId,
+  fromUrl,
+}: ModDashboardProps) {
   const router = useRouter()
   const [streamerId, setStreamerId] = useState(initialStreamerId)
 
@@ -95,7 +110,11 @@ export function ModDashboard({
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-1.5">
+            <Link
+              href="/"
+              transitionTypes={["nav-back"]}
+              className="flex items-center gap-1.5"
+            >
               <Image
                 src="/logo-koi.png"
                 alt="yt-str-nek"

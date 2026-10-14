@@ -46,16 +46,53 @@ describe("permisos de la cola", () => {
     expect(await queueTitles(streamer.id)).toHaveLength(1)
   })
 
-  it("un streamer no puede gestionar colas, ni siquiera la suya", async () => {
+  it("un streamer gestiona su propia cola, sin depender de un moderador", async () => {
     const streamer = await signInAsNew("streamer")
-    const item = await enqueue(streamer.id)
+    const item = await enqueue(streamer.id, { title: "Suya" })
+    mockYoutubeApi([{ id: "abc", title: "Nueva" }])
 
-    expect((await list(streamer.id)).status).toBe(403)
-    expect((await add({ streamerId: streamer.id, youtubeId: "abc" })).status).toBe(403)
-    expect((await remove(item.id)).status).toBe(403)
-    expect((await next({ streamerId: streamer.id })).status).toBe(403)
-    expect((await sort({ streamerId: streamer.id, items: [{ id: item.id, position: 1 }] })).status).toBe(403)
-    expect(await queueTitles(streamer.id)).toHaveLength(1)
+    expect((await list()).status).toBe(200)
+    expect((await add({ youtubeId: "abc" })).status).toBe(201)
+    expect(await queueTitles(streamer.id)).toEqual(["Suya", "Nueva"])
+
+    // También puede reordenar su propia cola sin indicar streamerId.
+    const [suya, nueva] = await prisma.queueItem.findMany({
+      where: { streamerId: streamer.id },
+      orderBy: { position: "asc" },
+    })
+
+    expect(
+      (
+        await sort({
+          items: [
+            { id: suya.id, position: 2 },
+            { id: nueva.id, position: 1 },
+          ],
+        })
+      ).status
+    ).toBe(200)
+    expect(await queueTitles(streamer.id)).toEqual(["Nueva", "Suya"])
+
+    // Y reproducir la siguiente de su cola.
+    expect((await next({})).status).toBe(200)
+    expect(await queueTitles(streamer.id)).toEqual(["Suya"])
+
+    expect((await remove(item.id)).status).toBe(200)
+  })
+
+  it("un streamer no puede tocar la cola de otro aunque sepa el id", async () => {
+    const mine = await signInAsNew("streamer")
+    const other = await createUser("streamer")
+    const foreign = await enqueue(other.id, { title: "Ajena" })
+
+    // Al listar, pida lo que pida, recibe la suya (vacía).
+    const body = await readJson(await list(other.id))
+    expect(body.queue).toEqual([])
+    expect(await queueTitles(mine.id)).toEqual([])
+
+    // Y no puede borrar una canción que no es de su cola.
+    expect((await remove(foreign.id)).status).toBe(404)
+    expect(await queueTitles(other.id)).toEqual(["Ajena"])
   })
 
   it.each(["admin", "mod"] as const)("un %s gestiona la cola de cualquier streamer", async (role) => {

@@ -55,15 +55,16 @@ describe("proxy", () => {
     expect(destination(await visit("/users", "mod"))).toBe("/")
   })
 
-  it("streamer solo entra en el reproductor", async () => {
+  it("streamer entra en el panel (solo su cola) y en el reproductor, pero no en usuarios", async () => {
     expect(destination(await visit("/player", "streamer"))).toBeNull()
-    expect(destination(await visit("/mod", "streamer"))).toBe("/")
+    expect(destination(await visit("/mod", "streamer"))).toBeNull()
     expect(destination(await visit("/users", "streamer"))).toBe("/")
   })
 
   it("un rol desconocido se trata como streamer", async () => {
     expect(destination(await visit("/player", "inventado"))).toBeNull()
-    expect(destination(await visit("/mod", "inventado"))).toBe("/")
+    expect(destination(await visit("/mod", "inventado"))).toBeNull()
+    expect(destination(await visit("/users", "inventado"))).toBe("/")
   })
 
   it("vigila el login y las tres zonas protegidas", () => {

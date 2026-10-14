@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { requireRoles, PANEL_ROLES } from "@/lib/authorize"
+import { requireRoles, PANEL_ACCESS_ROLES } from "@/lib/authorize"
 import { prisma } from "@/lib/prisma"
 import { resolveStreamerId } from "@/lib/streamers"
 import { reorderQueueSchema } from "@/lib/validators"
 
 export async function POST(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
 
   const parsed = reorderQueueSchema.safeParse(await req.json().catch(() => ({})))
