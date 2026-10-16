@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import {
   CirclePlay,
   Headphones,
-  Home,
+  ListMusic,
   MonitorPlay,
   Pause,
   Play,
@@ -18,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
+import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSong } from "@/app/api/player/current/route"
 import type { Streamer } from "@/types"
@@ -95,15 +96,28 @@ const BUFFERING_TIMEOUT_MS = 20000
 const POLL_PLAYING_MS = 5000
 const POLL_EMPTY_MS = 2500
 
-export function Player({
-  streamer,
-  streamers,
-}: {
+interface PlayerProps {
   /** Dueño de la cola que suena. */
   streamer: Streamer
   /** Otras colas a las que se puede saltar. Vacío si solo puede ver la suya. */
   streamers: Streamer[]
-}) {
+  /** Si puede abrir el panel /mod para gestionar su cola. */
+  canModerate?: boolean
+}
+
+/**
+ * El reproductor se envuelve en una transición de vista para animar la
+ * navegación hacia el panel y de vuelta.
+ */
+export function Player(props: PlayerProps) {
+  return (
+    <ViewTransition {...NAV_TRANSITION}>
+      <PlayerContent {...props} />
+    </ViewTransition>
+  )
+}
+
+function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps) {
   const router = useRouter()
   const streamerId = streamer.id
 
@@ -115,6 +129,9 @@ export function Player({
   // Si el visitante ya ha interactuado con la página. Hasta entonces el
   // navegador puede negarse a reproducir con sonido.
   const [activated, setActivated] = useState(true)
+  // Espejo de `activated` para los eventos del reproductor, que se registran
+  // una sola vez y no ven el estado actual.
+  const activatedRef = useRef(true)
   const [showVideo, setShowVideo] = useState(false)
   const [position, setPosition] = useState({ current: 0, total: 0, buffered: 0 })
   // Fracción bajo el ratón en la barra de tiempo, para la vista previa
@@ -296,6 +313,18 @@ export function Player({
     }
   }, [])
 
+  /**
+   * Reanuda la canción cargada. Se usa cuando el reproductor se queda en pausa
+   * sin que nadie lo haya pedido: si ya se había conseguido reproducir antes,
+   * no es un bloqueo del navegador y basta con reintentarlo.
+   */
+  const resume = useCallback(() => {
+    const player = playerRef.current
+    if (!player || !readyRef.current) return
+    applyVolume(player)
+    player.playVideo()
+  }, [applyVolume])
+
   /** Pone a sonar una canción en el reproductor ya creado. */
   const loadIntoPlayer = useCallback(
     (player: YTPlayer, song: PlayerSong, alreadyCued: boolean) => {
@@ -318,10 +347,10 @@ export function Player({
 
   // Los eventos del reproductor viven tanto como él, así que llaman siempre a
   // la última versión de estas funciones a través de una ref.
-  const handlersRef = useRef({ advance, loadIntoPlayer, clearWatchdog })
+  const handlersRef = useRef({ advance, loadIntoPlayer, clearWatchdog, resume })
   useEffect(() => {
-    handlersRef.current = { advance, loadIntoPlayer, clearWatchdog }
-  }, [advance, loadIntoPlayer, clearWatchdog])
+    handlersRef.current = { advance, loadIntoPlayer, clearWatchdog, resume }
+  }, [advance, loadIntoPlayer, clearWatchdog, resume])
 
   /** Crea el reproductor. Solo ocurre una vez: luego se le cambian los vídeos. */
   const createPlayer = useCallback(async (first: PlayerSong) => {
@@ -388,6 +417,7 @@ export function Player({
         onStateChange: (event: { data: number }) => {
           if (event.data === YT.PlayerState.PLAYING) {
             handlersRef.current.clearWatchdog()
+            activatedRef.current = true
             setIsPlaying(true)
             setNeedsGesture(false)
             setActivated(true)
@@ -398,6 +428,12 @@ export function Player({
             // Una pausa que nadie ha pedido justo al arrancar es el navegador
             // bloqueando el autoplay.
             if (!userPausedRef.current && watchdogRef.current !== null) {
+              // Si esta pestaña ya ha reproducido antes, no es un bloqueo:
+              // se reintenta sin pedirle un clic al streamer.
+              if (activatedRef.current) {
+                handlersRef.current.resume()
+                return
+              }
               handlersRef.current.clearWatchdog()
               setNeedsGesture(true)
             }
@@ -538,7 +574,11 @@ export function Player({
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActivated(false)
-    const onGesture = () => setActivated(true)
+    activatedRef.current = false
+    const onGesture = () => {
+      activatedRef.current = true
+      setActivated(true)
+    }
     window.addEventListener("pointerdown", onGesture, { once: true })
     window.addEventListener("keydown", onGesture, { once: true })
 
@@ -574,6 +614,8 @@ export function Player({
     userPausedRef.current = false
     applyVolume(player)
     player.playVideo()
+    activatedRef.current = true
+    setActivated(true)
     setIsPlaying(true)
     setNeedsGesture(false)
     if (loadedIdRef.current) startWatchdog(loadedIdRef.current)
@@ -653,13 +695,18 @@ export function Player({
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-3 p-4">
       <div className="flex items-center justify-between gap-3 px-2">
-        <Link
-          href="/"
-          className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <Home className="h-4 w-4" />
-          <span className="hidden sm:inline">Cambiar de modo</span>
-        </Link>
+        <div className="flex min-w-0 items-center gap-3">
+          {canModerate && (
+            <Link
+              href={`/mod?streamer=${encodeURIComponent(streamer.id)}`}
+              transitionTypes={["nav-back"]}
+              className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ListMusic className="h-4 w-4" />
+              <span className="hidden sm:inline">Panel</span>
+            </Link>
+          )}
+        </div>
         {streamers.length > 1 ? (
           <StreamerSelect
             streamers={streamers}
@@ -671,7 +718,7 @@ export function Player({
             Cola de <span className="font-medium text-foreground">{streamer.username}</span>
           </span>
         )}
-        <ThemeToggle />
+        <AppearanceMenu />
       </div>
 
       <Card className="gap-0 overflow-hidden border-2 border-border/60 py-0">
@@ -688,7 +735,13 @@ export function Player({
             </p>
             {!activated && (
               <div className="pt-3">
-                <Button variant="secondary" onClick={() => setActivated(true)}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    activatedRef.current = true
+                    setActivated(true)
+                  }}
+                >
                   <CirclePlay />
                   Activar reproducción automática
                 </Button>
@@ -727,7 +780,7 @@ export function Player({
             >
               {showVideo ? <Headphones /> : <MonitorPlay />}
               <span className="hidden sm:inline">
-                {showVideo ? "Solo audio" : "Ver vídeo"}
+                {showVideo ? "Solo audio" : "Ver video"}
               </span>
             </Button>
           </div>

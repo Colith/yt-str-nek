@@ -12,7 +12,8 @@ import { AddByUrlForm } from "@/components/search/add-by-url-form"
 import { QueueList } from "@/components/queue/queue-list"
 import { HistoryList } from "@/components/history/history-list"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { AppearanceMenu } from "@/components/theme/appearance-menu"
+import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { useQueue } from "@/hooks/use-queue"
 import { useQueueSync } from "@/hooks/use-queue-sync"
 import { MAX_QUEUE, type Streamer, type YoutubeResult } from "@/types"
@@ -20,21 +21,38 @@ import { MAX_QUEUE, type Streamer, type YoutubeResult } from "@/types"
 /** Recuerda el último streamer que gestionó este navegador. */
 const LAST_STREAMER_KEY = "ytstrnek.lastStreamer"
 
-export function ModDashboard({
-  username,
-  canManageUsers,
-  streamers,
-  initialStreamerId,
-  fromUrl,
-}: {
+interface ModDashboardProps {
   username: string
   canManageUsers: boolean
+  /** Si puede alternar entre panel y reproductor (admin/mod). Un streamer no. */
+  canSwitchMode: boolean
   streamers: Streamer[]
   /** Streamer con el que abrir el panel, o null si todavía no hay ninguno. */
   initialStreamerId: string | null
   /** Si el streamer venía pedido en la URL: entonces manda sobre lo recordado. */
   fromUrl: boolean
-}) {
+}
+
+/**
+ * El panel se envuelve en una transición de vista para que la navegación hacia
+ * y desde el reproductor tenga una animación direccional.
+ */
+export function ModDashboard(props: ModDashboardProps) {
+  return (
+    <ViewTransition {...NAV_TRANSITION}>
+      <ModDashboardContent {...props} />
+    </ViewTransition>
+  )
+}
+
+function ModDashboardContent({
+  username,
+  canManageUsers,
+  canSwitchMode,
+  streamers,
+  initialStreamerId,
+  fromUrl,
+}: ModDashboardProps) {
   const router = useRouter()
   const [streamerId, setStreamerId] = useState(initialStreamerId)
 
@@ -90,21 +108,33 @@ export function ModDashboard({
 
   const streamer = streamers.find((s) => s.id === streamerId) ?? null
 
+  const brandLogo = (
+    <Image
+      src="/logo-koi.png"
+      alt="yt-str-nek"
+      width={120}
+      height={32}
+      className="h-7 w-auto"
+      priority
+    />
+  )
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-1.5">
-              <Image
-                src="/logo-koi.png"
-                alt="yt-str-nek"
-                width={120}
-                height={32}
-                className="h-7 w-auto"
-                priority
-              />
-            </Link>
+            {canSwitchMode ? (
+              <Link
+                href="/"
+                transitionTypes={["nav-back"]}
+                className="flex items-center gap-1.5"
+              >
+                {brandLogo}
+              </Link>
+            ) : (
+              brandLogo
+            )}
             <span className="text-xs text-muted-foreground">· {username}</span>
           </div>
           <div className="flex items-center gap-1">
@@ -128,7 +158,7 @@ export function ModDashboard({
                 <span className="hidden sm:inline">Usuarios</span>
               </Link>
             )}
-            <ThemeToggle />
+            <AppearanceMenu />
             <Button
               variant="ghost"
               size="icon"
@@ -144,7 +174,7 @@ export function ModDashboard({
           </div>
         </div>
 
-        {streamer && (
+        {streamer && streamers.length > 1 && (
           <div className="border-t border-border/60">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
               <StreamerSelect

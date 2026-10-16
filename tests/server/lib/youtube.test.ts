@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  YoutubeApiError,
   extractYoutubeId,
   getVideoDetails,
   isValidYoutubeUrl,
@@ -123,8 +124,37 @@ describe("searchYoutube", () => {
     ])
   })
 
-  it("lanza un error si la búsqueda falla", async () => {
-    mockYoutubeApi([], { failSearch: true })
-    await expect(searchYoutube("algo")).rejects.toThrow("Error al buscar en YouTube")
+  it("lanza un error tipado, marcado como cuota, si la búsqueda falla", async () => {
+    mockYoutubeApi([], { failSearch: "quota" })
+
+    const error = await searchYoutube("algo").catch((e) => e)
+
+    expect(error).toBeInstanceOf(YoutubeApiError)
+    expect((error as YoutubeApiError).isQuota).toBe(true)
+  })
+
+  it("usa la clave de reserva cuando la principal agota la cuota", async () => {
+    vi.stubEnv("YOUTUBE_API_KEY_2", "clave-de-reserva")
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input))
+      if (url.searchParams.get("key") !== "clave-de-reserva") {
+        return Response.json(
+          { error: { code: 429, errors: [{ reason: "rateLimitExceeded" }] } },
+          { status: 429 }
+        )
+      }
+      return url.pathname.endsWith("/search")
+        ? Response.json({ items: [{ id: { videoId: "a" }, snippet: { title: "Uno" } }] })
+        : Response.json({ items: [] })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    expect(await searchYoutube("algo")).toEqual([
+      { youtubeId: "a", title: "Uno", channel: "", thumbnail: "", durationSec: null },
+    ])
+    // La primera clave se intentó y falló; la segunda respondió.
+    expect(
+      fetchMock.mock.calls.map((c) => new URL(String(c[0])).searchParams.get("key"))
+    ).toEqual(["clave-de-prueba", "clave-de-reserva", "clave-de-reserva"])
   })
 })

@@ -20,12 +20,30 @@ function snippet(video: FakeVideo) {
  * Sustituye fetch por una API de YouTube de mentira que solo conoce los vídeos
  * indicados. Devuelve el espía, para comprobar qué se le pidió.
  */
-export function mockYoutubeApi(videos: FakeVideo[], options: { failSearch?: boolean } = {}) {
+export function mockYoutubeApi(
+  videos: FakeVideo[],
+  options: { failSearch?: "quota" | "http" } = {}
+) {
   const fetchMock = vi.fn(async (input: string | URL | Request) => {
     const url = new URL(typeof input === "string" ? input : input.toString())
 
     if (url.pathname.endsWith("/search")) {
-      if (options.failSearch) return new Response("cuota agotada", { status: 403 })
+      if (options.failSearch === "quota") {
+        // Así responde Google cuando se agota la cuota de búsquedas al día.
+        return Response.json(
+          {
+            error: {
+              code: 429,
+              message: "Quota exceeded for quota metric 'Search Queries'",
+              errors: [{ reason: "rateLimitExceeded" }],
+            },
+          },
+          { status: 429 }
+        )
+      }
+      if (options.failSearch === "http") {
+        return new Response("error", { status: 500 })
+      }
       return Response.json({
         items: videos.map((v) => ({ id: { videoId: v.id }, snippet: snippet(v) })),
       })

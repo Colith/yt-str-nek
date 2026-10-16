@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { SignJWT } from "jose"
 import {
   ADMIN_ROLES,
+  PANEL_ACCESS_ROLES,
   PANEL_ROLES,
   PLAYER_ROLES,
   SESSION_MAX_AGE,
@@ -92,9 +93,17 @@ describe("hasRole", () => {
     expect(hasRole(as("streamer"), ADMIN_ROLES)).toBe(false)
   })
 
+  it("acceder al panel es cosa de los tres roles, aunque un streamer solo vea su cola", () => {
+    expect(hasRole(as("admin"), PANEL_ACCESS_ROLES)).toBe(true)
+    expect(hasRole(as("mod"), PANEL_ACCESS_ROLES)).toBe(true)
+    expect(hasRole(as("streamer"), PANEL_ACCESS_ROLES)).toBe(true)
+  })
+
   it("un rol desconocido se trata como el más restrictivo", () => {
     expect(hasRole(as("superadmin"), ADMIN_ROLES)).toBe(false)
     expect(hasRole(as("superadmin"), PANEL_ROLES)).toBe(false)
     expect(hasRole(as("superadmin"), PLAYER_ROLES)).toBe(true)
+    // Cae al rol streamer, así que entra en el panel con su propia cola.
+    expect(hasRole(as("superadmin"), PANEL_ACCESS_ROLES)).toBe(true)
   })
 })

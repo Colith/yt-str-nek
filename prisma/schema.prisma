@@ -20,6 +20,8 @@ model User {
   // Volumen con el que le gusta escuchar al usuario, de 0 a 100.
   // Null significa que todavia no ha elegido ninguno.
   volume    Int?
+  // Fondo de la interfaz que prefiere el usuario: "normal" o "otaku".
+  artStyle  String      @default("normal")
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   addedBy   QueueItem[] @relation("AddedByUser")

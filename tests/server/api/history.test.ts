@@ -31,7 +31,7 @@ async function played(streamerId: string, title: string, requesterName?: string)
 }
 
 describe("permisos del historial", () => {
-  it("sin sesión responde 401 y un streamer recibe 403", async () => {
+  it("sin sesión responde 401", async () => {
     const streamer = await createUser("streamer")
     const entry = await played(streamer.id, "Vieja")
 
@@ -40,12 +40,38 @@ describe("permisos del historial", () => {
     expect((await reAdd({ id: entry.id })).status).toBe(401)
     expect((await clear(`?streamerId=${streamer.id}`)).status).toBe(401)
 
-    await signInAsNew("streamer")
-    expect((await list(streamer.id)).status).toBe(403)
-    expect((await reAdd({ id: entry.id })).status).toBe(403)
-    expect((await clear(`?streamerId=${streamer.id}`)).status).toBe(403)
-
     expect(await historyTitles(streamer.id)).toEqual(["Vieja"])
+  })
+
+  it("un streamer gestiona su propio historial", async () => {
+    const streamer = await signInAsNew("streamer")
+    const entry = await played(streamer.id, "Suya")
+
+    const body = await readJson(await list())
+    expect(body.history.map((h: { song: { title: string } }) => h.song.title)).toEqual(["Suya"])
+
+    expect((await clear("")).status).toBe(200)
+    expect(await historyTitles(streamer.id)).toEqual([])
+
+    // Ya no queda nada que reañadir de su historial
+    expect((await reAdd({ id: entry.id })).status).toBe(404)
+  })
+
+  it("un streamer no puede tocar el historial de otro aunque sepa el id", async () => {
+    const mine = await signInAsNew("streamer")
+    const other = await createUser("streamer")
+    const foreign = await played(other.id, "Ajena")
+
+    // Al listar, pida lo que pida, recibe la suya.
+    expect((await readJson(await list(other.id))).history).toEqual([])
+
+    // Reañadir una entrada del historial de otro no existe para él.
+    expect((await reAdd({ id: foreign.id })).status).toBe(404)
+
+    // Vaciar apunta siempre a su propio historial, no al que pida en la URL.
+    expect((await clear(`?streamerId=${other.id}`)).status).toBe(200)
+    expect(await historyTitles(other.id)).toEqual(["Ajena"])
+    expect(await historyTitles(mine.id)).toEqual([])
   })
 })
 

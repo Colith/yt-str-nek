@@ -22,8 +22,8 @@ function ResultRow({
   const [adding, setAdding] = useState(false)
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/60 p-3 transition-colors hover:border-primary/40 sm:flex-row sm:items-center min-w-0">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+    <li className="flex min-w-0 flex-col gap-3 rounded-lg border border-border/60 bg-card/60 p-3 transition-colors hover:border-primary/40">
+      <div className="flex min-w-0 items-start gap-3">
         {result.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -36,8 +36,8 @@ function ResultRow({
             <Music4 className="h-5 w-5 text-muted-foreground" />
           </div>
         )}
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium" title={result.title}>
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 break-words text-sm font-medium" title={result.title}>
             {result.title}
           </p>
           <p className="truncate text-xs text-muted-foreground">
@@ -47,12 +47,12 @@ function ResultRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex items-center gap-2">
         <Input
           value={requester}
           onChange={(e) => setRequester(e.target.value)}
           placeholder="Pedido por (opcional)"
-          className="h-9 w-full text-sm sm:w-40"
+          className="h-9 flex-1 text-sm sm:max-w-60"
           maxLength={50}
         />
         <Button
@@ -86,9 +86,23 @@ export function YoutubeSearch({
   const [results, setResults] = useState<YoutubeResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  // La búsqueda de YouTube gasta una cuota diaria corta: se guarda cada
+  // consulta para no repetir la misma petición, y solo se busca al enviar el
+  // formulario (Enter o el botón), no en cada tecla.
+  const cacheRef = useRef(new Map<string, YoutubeResult[]>())
 
-  async function doSearch(q: string) {
+  async function search(raw: string) {
+    const q = raw.trim()
+    if (q.length < 2) return
+
+    const key = q.toLowerCase()
+    const cached = cacheRef.current.get(key)
+    if (cached) {
+      setResults(cached)
+      setSearched(true)
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(q)}`)
@@ -97,7 +111,9 @@ export function YoutubeSearch({
         toast.error(data.error)
         setResults([])
       } else {
-        setResults(data.results || [])
+        const list: YoutubeResult[] = data.results || []
+        cacheRef.current.set(key, list)
+        setResults(list)
       }
       setSearched(true)
     } catch {
@@ -120,31 +136,32 @@ export function YoutubeSearch({
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (debounceRef.current) clearTimeout(debounceRef.current)
-            if (query.trim().length >= 2) doSearch(query.trim())
+            search(query)
           }}
+          className="flex items-center gap-2"
         >
           <Input
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
-              const q = e.target.value.trim()
-              if (debounceRef.current) clearTimeout(debounceRef.current)
-              if (q.length >= 2) {
-                debounceRef.current = setTimeout(() => doSearch(q), 500)
-              } else if (q.length === 0) {
+              if (e.target.value.trim() === "") {
                 setResults([])
                 setSearched(false)
               }
             }}
             placeholder="Título de la canción o artista..."
+            aria-label="Buscar en YouTube"
             disabled={disabled}
           />
+          <Button type="submit" disabled={disabled || loading || query.trim().length < 2}>
+            <Search className="h-4 w-4" />
+            <span className="sr-only">Buscar</span>
+          </Button>
         </form>
 
         {preloaded && (
           <div className="rounded-lg border border-primary/50 bg-accent/50 p-3">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Vídeo cargado desde el enlace</p>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Video cargado desde el enlace</p>
             <ul>
               <ResultRow result={preloaded} onAdd={onAdd} disabled={disabled} />
             </ul>

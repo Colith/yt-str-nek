@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getSession, hasRole, PANEL_ROLES } from "@/lib/auth"
+import { getSession, hasRole, PANEL_ACCESS_ROLES, PANEL_ROLES } from "@/lib/auth"
 import { listStreamers } from "@/lib/streamers"
 import { ModDashboard } from "@/components/queue/mod-dashboard"
 
@@ -12,8 +12,9 @@ export default async function ModPage({
   if (!session) redirect("/login?callbackUrl=/mod")
 
   // El proxy ya lo bloquea, pero repetirlo aquí evita que un cambio futuro en
-  // el matcher deje el panel abierto por error.
-  if (!hasRole(session, PANEL_ROLES)) redirect("/")
+  // el matcher deje el panel abierto por error. Un streamer también entra: ve
+  // solo su propia cola, porque listStreamers se la limita.
+  if (!hasRole(session, PANEL_ACCESS_ROLES)) redirect("/")
 
   const streamers = await listStreamers(session)
 
@@ -28,6 +29,7 @@ export default async function ModPage({
     <ModDashboard
       username={session.username}
       canManageUsers={session.role === "admin"}
+      canSwitchMode={hasRole(session, PANEL_ROLES)}
       streamers={streamers}
       initialStreamerId={initialStreamerId}
       fromUrl={fromUrl}

@@ -19,16 +19,16 @@ const find = (q?: string) =>
 const byUrl = (body: unknown) => resolve(jsonRequest("/api/youtube/resolve", "POST", body))
 
 describe("GET /api/youtube/search", () => {
-  it("solo admin y mod pueden buscar", async () => {
+  it("sin sesión responde 401 sin gastar cuota; un streamer sí busca", async () => {
+    signOut()
     const fetchMock = mockYoutubeApi([{ id: "a" }])
 
-    signOut()
     expect((await find("algo")).status).toBe(401)
-    await signInAsNew("streamer")
-    expect((await find("algo")).status).toBe(403)
-
-    // Sin permiso no se gasta cuota de la API
+    // Sin sesión no se gasta cuota de la API
     expect(fetchMock).not.toHaveBeenCalled()
+
+    await signInAsNew("streamer")
+    expect((await find("algo")).status).toBe(200)
   })
 
   it("devuelve los resultados de YouTube", async () => {
@@ -58,9 +58,15 @@ describe("GET /api/youtube/search", () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("responde 502 si YouTube falla y 503 si falta la API key", async () => {
+  it("traduce la cuota agotada, el fallo genérico y la falta de clave", async () => {
     await signInAsNew("mod")
-    mockYoutubeApi([], { failSearch: true })
+
+    mockYoutubeApi([], { failSearch: "quota" })
+    const quota = await find("algo")
+    expect(quota.status).toBe(429)
+    expect((await readJson(quota)).error).toMatch(/cuota/i)
+
+    mockYoutubeApi([], { failSearch: "http" })
     expect((await find("algo")).status).toBe(502)
 
     vi.stubEnv("YOUTUBE_API_KEY", "")
@@ -69,11 +75,13 @@ describe("GET /api/youtube/search", () => {
 })
 
 describe("POST /api/youtube/resolve", () => {
-  it("solo admin y mod pueden resolver enlaces", async () => {
+  it("sin sesión responde 401; un streamer también resuelve enlaces", async () => {
     signOut()
     expect((await byUrl({ url: "https://youtu.be/abc" })).status).toBe(401)
+
     await signInAsNew("streamer")
-    expect((await byUrl({ url: "https://youtu.be/abc" })).status).toBe(403)
+    mockYoutubeApi([{ id: "abc" }])
+    expect((await byUrl({ url: "https://youtu.be/abc" })).status).toBe(200)
   })
 
   it("convierte un enlace en los datos del vídeo sin guardarlo en la cola", async () => {

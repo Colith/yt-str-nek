@@ -23,7 +23,7 @@ vi.mock("@/components/player/player", () => ({ Player: () => null }))
 vi.mock("@/components/users/users-manager", () => ({
   UsersManager: () => <div>gestor de usuarios</div>,
 }))
-vi.mock("@/components/theme/theme-toggle", () => ({ ThemeToggle: () => null }))
+vi.mock("@/components/theme/appearance-menu", () => ({ AppearanceMenu: () => null }))
 
 const A = { id: "s1", username: "directo" }
 const B = { id: "s2", username: "otra" }
@@ -42,31 +42,26 @@ const params = (query: Record<string, string | string[]> = {}) => ({
 beforeEach(() => withStreamers())
 
 describe("portada", () => {
-  it("sin sesión enseña los dos modos y avisa de que hay que entrar", async () => {
+  it("sin sesión manda al login", async () => {
     session(null)
+
+    await expect(Home()).rejects.toThrow("REDIRECT:/login")
+  })
+
+  it("a un streamer lo manda directo a su reproductor", async () => {
+    session("streamer")
+
+    await expect(Home()).rejects.toThrow("REDIRECT:/player")
+  })
+
+  it.each(["admin", "mod"])("a un %s le ofrece elegir entre los dos modos", async (role) => {
+    session(role)
     render(await Home())
 
     expect(screen.getByRole("link", { name: /Modo moderador/ })).toHaveAttribute("href", "/mod")
     expect(screen.getByRole("link", { name: /Modo streamer/ })).toHaveAttribute("href", "/player")
-    expect(screen.getByText("Ambas vistas requieren iniciar sesión.")).toBeInTheDocument()
-  })
-
-  it("a un streamer solo le ofrece el reproductor", async () => {
-    session("streamer")
-    render(await Home())
-
-    expect(screen.queryByRole("link", { name: /Modo moderador/ })).not.toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /Modo streamer/ })).toBeInTheDocument()
     expect(screen.getByText(/Hola, ana/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeInTheDocument()
-  })
-
-  it.each(["admin", "mod"])("a un %s le ofrece los dos modos", async (role) => {
-    session(role)
-    render(await Home())
-
-    expect(screen.getByRole("link", { name: /Modo moderador/ })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /Modo streamer/ })).toBeInTheDocument()
   })
 })
 
@@ -76,9 +71,18 @@ describe("página del panel (/mod)", () => {
     await expect(ModPage(params())).rejects.toThrow("REDIRECT:/login?callbackUrl=/mod")
   })
 
-  it("a un streamer lo devuelve a la portada", async () => {
-    session("streamer")
-    await expect(ModPage(params())).rejects.toThrow("REDIRECT:/")
+  it("un streamer abre el panel con su propia cola", async () => {
+    session("streamer", "s1", "directo")
+    withStreamers(A)
+
+    const page = (await ModPage(params())) as ReactElement<Record<string, unknown>>
+
+    expect(page.props).toMatchObject({
+      username: "directo",
+      canManageUsers: false,
+      streamers: [A],
+      initialStreamerId: "s1",
+    })
   })
 
   it("sin streamer en la URL abre la cola del primero", async () => {
@@ -143,7 +147,7 @@ describe("página del reproductor (/player)", () => {
       Record<string, unknown>
     >
 
-    expect(page.props).toEqual({ streamer: A, streamers: [] })
+    expect(page.props).toEqual({ streamer: A, streamers: [], canModerate: true })
     expect(page.key).toBe("s1")
   })
 
@@ -155,7 +159,7 @@ describe("página del reproductor (/player)", () => {
       Record<string, unknown>
     >
 
-    expect(page.props).toEqual({ streamer: B, streamers: [A, B] })
+    expect(page.props).toEqual({ streamer: B, streamers: [A, B], canModerate: true })
   })
 
   it("con un único streamer no hace falta elegir", async () => {
@@ -164,7 +168,7 @@ describe("página del reproductor (/player)", () => {
 
     const page = (await PlayerPage(params())) as ReactElement<Record<string, unknown>>
 
-    expect(page.props).toEqual({ streamer: A, streamers: [A] })
+    expect(page.props).toEqual({ streamer: A, streamers: [A], canModerate: true })
   })
 
   it("con varios streamers y ninguno elegido, pregunta qué cola reproducir", async () => {

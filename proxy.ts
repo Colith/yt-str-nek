@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 // y cada API vuelven a validar la sesión y el rol por su cuenta.
 import {
   ADMIN_ROLES,
-  PANEL_ROLES,
+  PANEL_ACCESS_ROLES,
   PLAYER_ROLES,
   SESSION_COOKIE,
   hasRole,
@@ -14,7 +14,7 @@ import {
 
 /** Rutas y roles que las pueden abrir. */
 const PROTECTED: Array<{ prefix: string; roles: readonly Role[] }> = [
-  { prefix: "/mod", roles: PANEL_ROLES },
+  { prefix: "/mod", roles: PANEL_ACCESS_ROLES },
   { prefix: "/users", roles: ADMIN_ROLES },
   { prefix: "/player", roles: PLAYER_ROLES },
 ]

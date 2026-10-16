@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import { NextResponse } from "next/server"
-import { listStreamers, resolveStreamerId } from "@/lib/streamers"
+import { canAccessStreamer, listStreamers, resolveStreamerId } from "@/lib/streamers"
 import { createUser, resetDatabase, toSession } from "../../helpers/factories"
 
 beforeEach(resetDatabase)
@@ -72,5 +72,24 @@ describe("resolveStreamerId", () => {
     expect((self as NextResponse).status).toBe(404)
     const notStreamer = await resolveStreamerId(toSession(mod), admin.id)
     expect((notStreamer as NextResponse).status).toBe(404)
+  })
+})
+
+describe("canAccessStreamer", () => {
+  it("admin y mod pueden con cualquier cola", async () => {
+    const admin = await createUser("admin")
+    const mod = await createUser("mod")
+    const streamer = await createUser("streamer")
+
+    expect(canAccessStreamer(toSession(admin), streamer.id)).toBe(true)
+    expect(canAccessStreamer(toSession(mod), streamer.id)).toBe(true)
+  })
+
+  it("un streamer solo con la suya", async () => {
+    const me = await createUser("streamer")
+    const other = await createUser("streamer")
+
+    expect(canAccessStreamer(toSession(me), me.id)).toBe(true)
+    expect(canAccessStreamer(toSession(me), other.id)).toBe(false)
   })
 })

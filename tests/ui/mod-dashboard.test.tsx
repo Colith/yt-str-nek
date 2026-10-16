@@ -107,6 +107,7 @@ function renderDashboard(props: Partial<Parameters<typeof ModDashboard>[0]> = {}
     <ModDashboard
       username="ana"
       canManageUsers={false}
+      canSwitchMode={false}
       streamers={STREAMERS}
       initialStreamerId="s1"
       fromUrl={false}
@@ -222,7 +223,7 @@ describe("panel de moderadores", () => {
       screen.getByPlaceholderText("https://www.youtube.com/watch?v=..."),
       "https://youtu.be/yt2"
     )
-    await user.click(screen.getByRole("button", { name: "Cargar vídeo" }))
+    await user.click(screen.getByRole("button", { name: "Cargar video" }))
 
     const loaded = (await screen.findByText("Vídeo del enlace")).closest("li") as HTMLElement
     expect(api.to("POST", "/api/youtube/resolve")[0].body).toEqual({ url: "https://youtu.be/yt2" })
@@ -241,7 +242,7 @@ describe("panel de moderadores", () => {
       screen.getByPlaceholderText("https://www.youtube.com/watch?v=..."),
       "https://youtu.be/yt2"
     )
-    await user.click(screen.getByRole("button", { name: "Cargar vídeo" }))
+    await user.click(screen.getByRole("button", { name: "Cargar video" }))
     await screen.findByText("Vídeo del enlace")
 
     await user.selectOptions(screen.getByRole("combobox"), "s2")

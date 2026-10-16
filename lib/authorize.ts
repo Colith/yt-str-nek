@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import {
   ADMIN_ROLES,
+  PANEL_ACCESS_ROLES,
   PANEL_ROLES,
   getSession,
   hasRole,
@@ -8,7 +9,7 @@ import {
   type SessionUser,
 } from "@/lib/auth"
 
-export { ADMIN_ROLES, PANEL_ROLES }
+export { ADMIN_ROLES, PANEL_ACCESS_ROLES, PANEL_ROLES }
 
 /**
  * Exige una sesión con alguno de los roles indicados.

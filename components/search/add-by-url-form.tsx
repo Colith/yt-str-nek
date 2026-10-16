@@ -32,7 +32,7 @@ export function AddByUrlForm({
         toast.error(data.error)
       } else {
         onResolved(data.video)
-        toast.success("Vídeo cargado")
+        toast.success("Video cargado")
       }
     } catch {
       toast.error("Error al procesar la URL")
@@ -48,7 +48,7 @@ export function AddByUrlForm({
           <Link2 className="h-4 w-4 text-primary" />
           Añadir por enlace
         </CardTitle>
-        <CardDescription>Pega el link de YouTube del vídeo</CardDescription>
+        <CardDescription>Pega el enlace de YouTube del video</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -60,7 +60,7 @@ export function AddByUrlForm({
             required
           />
           <Button type="submit" variant="secondary" className="w-full" disabled={loading || disabled}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cargar vídeo"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cargar video"}
           </Button>
         </form>
       </CardContent>

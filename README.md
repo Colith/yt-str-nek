@@ -17,21 +17,25 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - El volumen con el que escucha cada usuario se guarda en su cuenta y se recupera al entrar
 - Sincronización entre pestañas (sondeo cada 5 s + al recuperar el foco)
 - Acceso restringido por usuario y contraseña (sesión con cookie `httpOnly` firmada)
+- El acceso empieza por el login: sin sesión no hay portada, y al entrar se elige entre modo moderador y modo streamer
+- Un streamer también entra al panel para añadir sus propias canciones, sin depender de un moderador
 - Reproductor en `/player` para el streamer: la música empieza y avanza sola mientras los moderadores añaden canciones
+- Transiciones de vista al navegar entre el panel, el reproductor y la portada
 
 ## Páginas
 
 | Ruta | Para qué |
 | --- | --- |
-| `/` | Portada: elige modo moderador o modo streamer |
+| `/` | Portada tras entrar: elige modo moderador o modo streamer |
 | `/login` | Inicio de sesión |
-| `/mod` | Panel de moderadores: cola, búsqueda e historial del streamer elegido |
+| `/mod` | Panel: cola, búsqueda e historial de la cola elegida |
 | `/player` | Reproductor de la cola de un streamer |
 | `/users` | Gestión de usuarios, contraseñas y roles |
 
-`/mod`, `/player` y `/users` exigen sesión. Si entras sin ella, el login te devuelve a
-la página que intentabas abrir. La portada solo muestra los modos a los que tu rol tiene
-acceso.
+Todas las páginas menos `/login` exigen sesión: si entras sin ella, el proxy te lleva
+al login. Al iniciar sesión se abre la portada para elegir modo; un `streamer` no elige,
+se le redirige directamente a `/player`. Desde el panel y el reproductor se puede volver
+a la portada con **Cambiar de modo**.
 
 ## Roles
 
@@ -39,7 +43,11 @@ acceso.
 | --- | --- | --- | --- |
 | `admin` | Sí, todas las colas | Sí, cualquier cola | Sí |
 | `mod` | Sí, todas las colas | Sí, cualquier cola | No |
-| `streamer` | No | Solo la suya | No |
+| `streamer` | Sí, solo la suya | Solo la suya | No |
+
+Un `streamer` entra al panel igual que un moderador, pero el servidor le limita a su
+propia cola: puede buscar, añadir canciones, reordenar y marcar como reproducidas sin
+depender de nadie, y nunca ve las colas de los demás.
 
 El rol viaja dentro del JWT, así que un cambio de rol no invalida la sesión abierta:
 hay que volver a entrar para que el proxy lo tenga en cuenta.
@@ -59,9 +67,9 @@ las demás.
   Buscar, añadir por enlace, reordenar, marcar como reproducida y el historial actúan
   sobre ese streamer. La elección va en la URL (`/mod?streamer=<id>`) y el navegador
   recuerda la última.
-- **Un streamer** abre `/player` y recibe su propia cola, sin elegir nada. El servidor
-  ignora cualquier otro streamer que venga en la petición, así que no puede ver ni
-  avanzar la cola de otro.
+- **Un streamer** entra tanto a `/player` como al panel `/mod` y recibe su propia cola,
+  sin elegir nada. El servidor ignora cualquier otro streamer que venga en la petición,
+  así que no puede ver ni tocar la cola de otro.
 - Admin y mod también pueden abrir el reproductor de cualquier streamer con
   `/player?streamer=<id>`, o desde el botón **Reproductor** del panel.
 
@@ -244,6 +252,7 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 | `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate y por el seed |
 | `AUTH_SECRET` | Clave para firmar la sesión. Genera con `openssl rand -base64 32` |
 | `YOUTUBE_API_KEY` | Clave de la YouTube Data API v3 (necesaria para buscar y resolver vídeos) |
+| `YOUTUBE_API_KEY_2` | Opcional: segunda clave (otro proyecto) para repartir la cuota diaria de búsquedas |
 | `SEED_USERNAME` | Usuario inicial que crea `npm run db:seed` |
 | `SEED_PASSWORD` | Contraseña del usuario inicial |
 | `SEED_ROLE` | Rol del usuario inicial: `admin`, `mod` o `streamer`. Por defecto `admin` |
@@ -257,6 +266,19 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 5. Copia la clave a `.env` como `YOUTUBE_API_KEY`.
 
 Sin esta clave, añadir canciones por enlace y la búsqueda devolverán un error indicando que falta configurarla.
+
+La búsqueda usa el endpoint `search` de la API, que tiene una **cuota diaria
+corta** (Google aplica un límite de consultas de búsqueda al día por proyecto).
+Para no agotarla:
+
+- El panel busca **al enviar** (Enter o el botón), no en cada tecla.
+- Cada consulta repetida se resuelve desde la caché del navegador.
+- Si se agota, el panel lo dice claramente y sugiere añadir la canción pegando el
+  enlace (que usa otro endpoint, con más margen).
+
+Si tienes más de un proyecto de Google Cloud, pon el segundo en
+`YOUTUBE_API_KEY_2`: cuando la clave principal agota su cuota, se reintenta sola
+con la de reserva.
 
 ## Despliegue en Vercel
 
@@ -292,6 +314,43 @@ Para crear el primer usuario en producción, define `SEED_USERNAME` y `SEED_PASS
 | `npm run prisma:migrate` | Crea una migración en desarrollo y regenera el cliente |
 | `npm run db:migrate` | Aplica las migraciones pendientes (en local, a mano) |
 | `bash scripts/prod-bootstrap.sh <url> [usuario]` | Aplica migraciones y crea/actualiza un mod contra otra base |
+
+### Fondo de arte
+
+El fondo es una **imagen monocroma** raster (`public/art/manga-art.png`) o
+vectorial (`public/art/manga-tile.svg`), generada desde una carpeta de imágenes:
+
+```bash
+python3 scripts/build-art.py [carpeta]              # vectores (SVG)
+python3 scripts/build-art.py [carpeta] --raster      # sin vectorizar (PNG)
+```
+
+Deja cada imagen en blanco y negro puro con **umbral adaptativo** (cada zona se
+corta contra su entorno, así las zonas oscuras conservan textura y detalle).
+Con `vtracer`, con **una sola** imagen genera esa imagen y con **varias** las
+reparte en un `tile` repetible; con `--raster` se salta la vectorización y sale
+un PNG a `RASTER_SIZE` (1920 px) con bordes suavizados (supersample `RASTER_SS` y
+4 bits por canal). En la web se usa como máscara CSS, así que toma el color del
+tema sin invertir nada; la presencia se controla con `--art-opacity` en
+`app/globals.css` y el detalle con `TRACE_SIZE`, `LAT_WINDOW` y, en raster,
+`RASTER_SIZE`/`RASTER_SS` en el script.
+
+Requiere ImageMagick 7 (`magick`) y `vtracer` (`pip install vtracer`).
+
+### Menú de Apariencia: modo normal y modo otaku
+
+El botón de paleta de la cabecera (portada, `/mod`, `/player` y `/users`) abre el
+**Menú de Apariencia**, con dos ajustes guardados **en la cuenta**:
+
+- **Tema**: claro, oscuro o el del sistema (`next-themes`).
+- **Fondo**: **modo normal** (diseño limpio, sin ilustración) o **modo otaku**
+  (con la ilustración de manga detrás del contenido).
+
+El fondo elegido se guarda en la columna `User.artStyle` (`"normal"` por
+defecto). Al cargar, `app/layout.tsx` lo lee y lo pinta como `data-art` en el
+`<html>`; el CSS enseña la ilustración solo bajo `html[data-art="otaku"]`. El
+cambio se aplica al vuelo con `PUT /api/me/style`, sin recargar. Como el layout
+depende de la sesión, todas las páginas se renderizan en el servidor a petición.
 
 ### Preparar la base de producción
 

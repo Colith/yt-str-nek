@@ -15,8 +15,21 @@ vi.mock("next/navigation", () => ({
 }))
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) =>
-    createElement("a", { href, ...rest }, children),
+  default: ({
+    href,
+    children,
+    transitionTypes,
+    ...rest
+  }: {
+    href: string
+    children: ReactNode
+    transitionTypes?: string[]
+  }) => {
+    // `transitionTypes` solo lo entiende el Link real de Next; no debe acabar
+    // como atributo del <a> de las pruebas.
+    void transitionTypes
+    return createElement("a", { href, ...rest }, children)
+  },
 }))
 
 vi.mock("next/image", () => ({

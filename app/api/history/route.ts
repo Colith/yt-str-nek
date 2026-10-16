@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { requireRoles, PANEL_ROLES } from "@/lib/authorize"
+import { requireRoles, PANEL_ACCESS_ROLES } from "@/lib/authorize"
 import { prisma } from "@/lib/prisma"
 import { MAX_QUEUE, nextQueuePosition, upsertSong } from "@/lib/songs"
-import { resolveStreamerId } from "@/lib/streamers"
+import { canAccessStreamer, resolveStreamerId } from "@/lib/streamers"
 
 export async function GET(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
 
   const target = await resolveStreamerId(
@@ -30,25 +30,26 @@ export async function GET(req: Request) {
 
 /** Reañade una canción del historial al final de la cola del mismo streamer. */
 export async function POST(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
   const { session } = guard
 
   const body = await req.json().catch(() => ({}))
   const historyId = typeof body.id === "string" ? body.id : null
   if (!historyId) {
-    return NextResponse.json({ error: "Cancción no indicada" }, { status: 400 })
+    return NextResponse.json({ error: "Canción no indicada" }, { status: 400 })
   }
 
   const historyItem = await prisma.historyItem.findUnique({
     where: { id: historyId },
     include: { song: true },
   })
-  if (!historyItem) {
+  // La canción vuelve a la cola de la que salió, y solo si la sesión puede
+  // tocar esa cola: un streamer no reañade del historial de otro.
+  if (!historyItem || !canAccessStreamer(session, historyItem.streamerId)) {
     return NextResponse.json({ error: "La canción no está en el historial" }, { status: 404 })
   }
 
-  // La canción vuelve a la cola de la que salió, no a la que el cliente diga.
   const { streamerId } = historyItem
 
   const queueCount = await prisma.queueItem.count({ where: { streamerId } })
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
   const song = await upsertSong(historyItem.song.youtubeId)
   if (!song) {
-    return NextResponse.json({ error: "El vídeo ya no está disponible" }, { status: 404 })
+    return NextResponse.json({ error: "El video ya no está disponible" }, { status: 404 })
   }
 
   const item = await prisma.queueItem.create({
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
  * borra entero; con ?id= se borra una entrada concreta.
  */
 export async function DELETE(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
 
   const url = new URL(req.url)

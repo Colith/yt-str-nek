@@ -14,13 +14,13 @@ async function fillAndSubmit(username = "ana", password = "clave-correcta") {
 }
 
 describe("formulario de login", () => {
-  it("envía las credenciales y, si son correctas, entra al panel", async () => {
+  it("envía las credenciales y, si son correctas, entra a la portada", async () => {
     const api = mockApi(() => ({ body: { ok: true } }))
     render(<LoginForm />)
 
     await fillAndSubmit()
 
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/mod"))
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
     expect(router.refresh).toHaveBeenCalled()
     expect(api.to("POST", "/api/auth/login")[0].body).toEqual({
       username: "ana",
@@ -28,14 +28,17 @@ describe("formulario de login", () => {
     })
   })
 
-  it("tras entrar vuelve a la página que se intentaba abrir", async () => {
+  it("ignora el destino guardado y vuelve siempre a la portada", async () => {
+    // El proxy puede añadir callbackUrl, pero la elección de modo (y el salto
+    // automático del streamer) manda desde la portada.
     setSearchParams("callbackUrl=/player")
     mockApi(() => ({ body: { ok: true } }))
     render(<LoginForm />)
 
     await fillAndSubmit()
 
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/player"))
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+    expect(router.push).not.toHaveBeenCalled()
   })
 
   it("muestra el error del servidor y no navega si las credenciales fallan", async () => {

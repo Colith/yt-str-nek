@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { requireRoles, PANEL_ROLES } from "@/lib/authorize"
+import { requireRoles, PANEL_ACCESS_ROLES } from "@/lib/authorize"
 import { prisma } from "@/lib/prisma"
 import { markAsPlayed } from "@/lib/songs"
 import { resolveStreamerId } from "@/lib/streamers"
 
 /** Marca la primera canción de un streamer como reproducida y la mueve al historial. */
 export async function POST(req: Request) {
-  const guard = await requireRoles(PANEL_ROLES)
+  const guard = await requireRoles(PANEL_ACCESS_ROLES)
   if (guard instanceof NextResponse) return guard
 
   const body = await req.json().catch(() => ({}))

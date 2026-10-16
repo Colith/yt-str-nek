@@ -308,6 +308,8 @@ describe("autoplay bloqueado por el navegador", () => {
   })
 
   it("una pausa que nadie ha pedido justo al arrancar también cuenta como bloqueo", async () => {
+    // Sin interacción previa en la pestaña: la pausa es el navegador.
+    vi.stubGlobal("navigator", { ...navigator, userActivation: { hasBeenActive: false } })
     playerServer([song(1)])
     await openPlayer()
     act(() => thePlayer().ready())
@@ -315,6 +317,25 @@ describe("autoplay bloqueado por el navegador", () => {
     act(() => thePlayer().emit(STATE.PAUSED))
 
     expect(screen.getByRole("button", { name: "Activar audio" })).toBeInTheDocument()
+  })
+
+  it("si la pausa llega después de haber sonado algo, la reintenta sin pedir clic", async () => {
+    playerServer([song(1), song(2)])
+    await openPlayer()
+    await startPlaying()
+    const player = thePlayer()
+
+    act(() => player.emit(STATE.ENDED))
+    await tick()
+    expect(player.videoId).toBe("v2")
+    const playsBefore = player.playVideo.mock.calls.length
+
+    // El navegador deja la canción nueva en pausa sin que nadie lo haya pedido.
+    // Como ya sonó otra antes, no es un bloqueo: se reintenta.
+    act(() => player.emit(STATE.PAUSED))
+
+    expect(player.playVideo.mock.calls.length).toBeGreaterThan(playsBefore)
+    expect(screen.queryByRole("button", { name: "Activar audio" })).not.toBeInTheDocument()
   })
 
   it("una red lenta no se confunde con un bloqueo", async () => {
@@ -490,7 +511,7 @@ describe("controles", () => {
     await openPlayer()
     await startPlaying()
 
-    fireEvent.click(screen.getByRole("button", { name: "Ver vídeo" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ver video" }))
     expect(screen.getByRole("button", { name: "Solo audio" })).toBeInTheDocument()
 
     expect(FakePlayer.instances).toHaveLength(1)
@@ -538,6 +559,24 @@ describe("información y navegación", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "s2" } })
 
     expect(router.push).toHaveBeenCalledWith("/player?streamer=s2")
+  })
+
+  it("ofrece volver al panel del streamer que suena", async () => {
+    playerServer([song(1)])
+    render(<Player streamer={STREAMER} streamers={[]} canModerate />)
+    await tick()
+
+    expect(screen.getByRole("link", { name: /Panel/ })).toHaveAttribute(
+      "href",
+      "/mod?streamer=s1"
+    )
+  })
+
+  it("sin acceso al panel no muestra el enlace", async () => {
+    playerServer([song(1)])
+    await openPlayer()
+
+    expect(screen.queryByRole("link", { name: /Panel/ })).not.toBeInTheDocument()
   })
 
   it("si la sesión ha caducado, manda al login", async () => {
