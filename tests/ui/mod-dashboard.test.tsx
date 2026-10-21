@@ -105,9 +105,7 @@ function dashboardServer() {
 function renderDashboard(props: Partial<Parameters<typeof ModDashboard>[0]> = {}) {
   return render(
     <ModDashboard
-      username="ana"
       canManageUsers={false}
-      canSwitchMode={false}
       streamers={STREAMERS}
       initialStreamerId="s1"
       fromUrl={false}
@@ -172,23 +170,6 @@ describe("panel de moderadores", () => {
     renderDashboard()
 
     expect(await screen.findByText("Primera de directo")).toBeInTheDocument()
-  })
-
-  it("el botón Reproductor abre el del streamer seleccionado", async () => {
-    dashboardServer()
-    const user = userEvent.setup()
-    renderDashboard()
-    await screen.findByText("Primera de directo")
-
-    expect(screen.getByRole("link", { name: /Reproductor/ })).toHaveAttribute(
-      "href",
-      "/player?streamer=s1"
-    )
-    await user.selectOptions(screen.getByRole("combobox"), "s2")
-    expect(screen.getByRole("link", { name: /Reproductor/ })).toHaveAttribute(
-      "href",
-      "/player?streamer=s2"
-    )
   })
 
   it("una canción buscada se añade a la cola del streamer seleccionado", async () => {
@@ -303,27 +284,17 @@ describe("panel de moderadores", () => {
     expect(await screen.findByText("Aún no hay canciones reproducidas.")).toBeInTheDocument()
   })
 
-  it("solo un admin ve el acceso a la gestión de usuarios", async () => {
+  it("el enlace a la gestión de usuarios solo aparece cuando no hay ninguna cola", async () => {
     dashboardServer()
     const { unmount } = renderDashboard({ canManageUsers: false })
     await screen.findByText("Primera de directo")
-    expect(screen.queryByRole("link", { name: /Usuarios/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Ir a usuarios/ })).not.toBeInTheDocument()
     unmount()
 
+    // Con colas abiertas el panel no lo ofrece: el acceso está en la cabecera.
     renderDashboard({ canManageUsers: true })
-    expect(await screen.findByRole("link", { name: /Usuarios/ })).toHaveAttribute("href", "/users")
-  })
-
-  it("cierra la sesión y vuelve al login", async () => {
-    const { api } = dashboardServer()
-    const user = userEvent.setup()
-    renderDashboard()
     await screen.findByText("Primera de directo")
-
-    await user.click(screen.getByRole("button", { name: "Salir" }))
-
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"))
-    expect(api.to("POST", "/api/auth/logout")).toHaveLength(1)
+    expect(screen.queryByRole("link", { name: /Ir a usuarios/ })).not.toBeInTheDocument()
   })
 })
 

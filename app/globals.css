@@ -10,6 +10,8 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-noto-serif-jp), serif;
+  --font-display: var(--font-kaushan), cursive;
+  --font-jp-display: var(--font-yomogi), cursive;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -138,6 +140,26 @@
 @layer components {
   .font-heading {
     font-family: var(--font-noto-serif-jp), serif;
+  }
+
+  /* Logotipo: el nombre de la página en latín o en japonés, según el modo.
+     El modo otaku lo decide el atributo data-art del <html>, que el Menú de
+     Apariencia cambia al vuelo sin recargar: por eso se pintan las dos
+     versiones y el CSS esconde la que no toca. */
+  .wordmark-jp {
+    display: none;
+  }
+
+  html[data-art="otaku"] .wordmark-latin {
+    display: none;
+  }
+
+  html[data-art="otaku"] .wordmark-jp {
+    display: inline;
+    /* Yomogi solo tiene un peso y es fina: un pelo de trazo la engorda sin
+       falsearla como lo haría la negrita sintética. Va en currentColor para
+       seguir al tema, y en em para escalar con el tamaño de la marca. */
+    -webkit-text-stroke: 0.03em currentColor;
   }
 
   /* Barras del reproductor, con la pinta de las de YouTube: línea fina, se

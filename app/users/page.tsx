@@ -1,14 +1,13 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
 import { getSession, hasRole, ADMIN_ROLES } from "@/lib/auth"
-import { buttonVariants } from "@/components/ui/button"
-import { AppearanceMenu } from "@/components/theme/appearance-menu"
+import { getAvatarUrl } from "@/lib/avatars"
+import { SITE } from "@/lib/site"
 import { UsersManager } from "@/components/users/users-manager"
 import { PageTransition } from "@/components/ui/view-transition"
+import { AppHeader } from "@/components/layout/app-header"
 
 export const metadata = {
-  title: "Usuarios · yt-str-nek",
+  title: `Usuarios · ${SITE.name}`,
 }
 
 export default async function UsersPage() {
@@ -16,40 +15,17 @@ export default async function UsersPage() {
   if (!session) redirect("/login?callbackUrl=/users")
   if (!hasRole(session, ADMIN_ROLES)) redirect("/mod")
 
+  const avatarUrl = await getAvatarUrl(session.id)
+
   return (
-    <PageTransition>
-      <div className="mx-auto min-h-screen max-w-3xl space-y-6 p-6">
-        <div className="flex items-center justify-between gap-2">
-          <Link
-            href="/mod"
-            transitionTypes={["nav-back"]}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al panel
-          </Link>
-          <AppearanceMenu />
-        </div>
+    <>
+      <AppHeader session={session} active="users" avatarUrl={avatarUrl} />
 
-        <UsersManager />
-
-        <div className="flex justify-center gap-3 pt-2">
-          <Link
-            href="/mod"
-            transitionTypes={["nav-back"]}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            Panel de moderadores
-          </Link>
-          <Link
-            href="/player"
-            transitionTypes={["nav-forward"]}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            Reproductor
-          </Link>
+      <PageTransition>
+        <div className="mx-auto min-h-[calc(100dvh-3.5rem)] max-w-3xl space-y-6 p-6">
+          <UsersManager />
         </div>
-      </div>
-    </PageTransition>
+      </PageTransition>
+    </>
   )
 }

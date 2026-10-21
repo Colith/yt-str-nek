@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ListMusic, Loader2, LogOut, Play, SkipForward, Radio, Users } from "lucide-react"
+import { ListMusic, Loader2, Play, SkipForward, Radio, Users } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { YoutubeSearch } from "@/components/search/youtube-search"
@@ -12,7 +11,6 @@ import { AddByUrlForm } from "@/components/search/add-by-url-form"
 import { QueueList } from "@/components/queue/queue-list"
 import { HistoryList } from "@/components/history/history-list"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { useQueue } from "@/hooks/use-queue"
 import { useQueueSync } from "@/hooks/use-queue-sync"
@@ -22,10 +20,8 @@ import { MAX_QUEUE, type Streamer, type YoutubeResult } from "@/types"
 const LAST_STREAMER_KEY = "ytstrnek.lastStreamer"
 
 interface ModDashboardProps {
-  username: string
+  /** Si puede abrir la gestión de usuarios (solo el admin). */
   canManageUsers: boolean
-  /** Si puede alternar entre panel y reproductor (admin/mod). Un streamer no. */
-  canSwitchMode: boolean
   streamers: Streamer[]
   /** Streamer con el que abrir el panel, o null si todavía no hay ninguno. */
   initialStreamerId: string | null
@@ -46,9 +42,7 @@ export function ModDashboard(props: ModDashboardProps) {
 }
 
 function ModDashboardContent({
-  username,
   canManageUsers,
-  canSwitchMode,
   streamers,
   initialStreamerId,
   fromUrl,
@@ -108,87 +102,24 @@ function ModDashboardContent({
 
   const streamer = streamers.find((s) => s.id === streamerId) ?? null
 
-  const brandLogo = (
-    <Image
-      src="/logo-koi.png"
-      alt="yt-str-nek"
-      width={120}
-      height={32}
-      className="h-7 w-auto"
-      priority
-    />
-  )
-
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-2">
-            {canSwitchMode ? (
-              <Link
-                href="/"
-                transitionTypes={["nav-back"]}
-                className="flex items-center gap-1.5"
-              >
-                {brandLogo}
-              </Link>
-            ) : (
-              brandLogo
-            )}
-            <span className="text-xs text-muted-foreground">· {username}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {streamer && (
-              <a
-                href={`/player?streamer=${encodeURIComponent(streamer.id)}`}
-                target="_blank"
-                rel="noreferrer"
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                <Radio />
-                <span className="hidden sm:inline">Reproductor</span>
-              </a>
-            )}
-            {canManageUsers && (
-              <Link
-                href="/users"
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                <Users />
-                <span className="hidden sm:inline">Usuarios</span>
-              </Link>
-            )}
-            <AppearanceMenu />
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Salir"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST" })
-                router.push("/login")
-                router.refresh()
-              }}
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+    <div className="min-h-[calc(100dvh-3.5rem)]">
+      {/* El selector de cola va pegado justo debajo de la cabecera, que es
+          pegajosa, para seguir viendo con qué cola se está trabajando. */}
+      {streamer && streamers.length > 1 && (
+        <div className="sticky top-14 z-20 border-b border-border/60 bg-background/85 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
+            <StreamerSelect
+              streamers={streamers}
+              value={streamer.id}
+              onChange={selectStreamer}
+            />
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              Cada streamer tiene su propia cola e historial
+            </span>
           </div>
         </div>
-
-        {streamer && streamers.length > 1 && (
-          <div className="border-t border-border/60">
-            <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
-              <StreamerSelect
-                streamers={streamers}
-                value={streamer.id}
-                onChange={selectStreamer}
-              />
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                Cada streamer tiene su propia cola e historial
-              </span>
-            </div>
-          </div>
-        )}
-      </header>
+      )}
 
       {!streamer ? (
         <main className="mx-auto max-w-xl px-4 py-16">

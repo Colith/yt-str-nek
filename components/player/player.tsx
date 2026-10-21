@@ -2,12 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   CirclePlay,
   Headphones,
-  ListMusic,
   MonitorPlay,
   Pause,
   Play,
@@ -18,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { StreamerSelect } from "@/components/streamers/streamer-select"
-import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import { NAV_TRANSITION, ViewTransition } from "@/components/ui/view-transition"
 import { formatDuration } from "@/lib/format"
 import type { PlayerSong } from "@/app/api/player/current/route"
@@ -101,8 +98,6 @@ interface PlayerProps {
   streamer: Streamer
   /** Otras colas a las que se puede saltar. Vacío si solo puede ver la suya. */
   streamers: Streamer[]
-  /** Si puede abrir el panel /mod para gestionar su cola. */
-  canModerate?: boolean
 }
 
 /**
@@ -117,7 +112,7 @@ export function Player(props: PlayerProps) {
   )
 }
 
-function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps) {
+function PlayerContent({ streamer, streamers }: PlayerProps) {
   const router = useRouter()
   const streamerId = streamer.id
 
@@ -693,20 +688,8 @@ function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps
   const videoVisible = showVideo && current !== null
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-3 p-4">
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-3xl flex-col justify-center gap-3 p-4">
       <div className="flex items-center justify-between gap-3 px-2">
-        <div className="flex min-w-0 items-center gap-3">
-          {canModerate && (
-            <Link
-              href={`/mod?streamer=${encodeURIComponent(streamer.id)}`}
-              transitionTypes={["nav-back"]}
-              className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <ListMusic className="h-4 w-4" />
-              <span className="hidden sm:inline">Panel</span>
-            </Link>
-          )}
-        </div>
         {streamers.length > 1 ? (
           <StreamerSelect
             streamers={streamers}
@@ -718,7 +701,6 @@ function PlayerContent({ streamer, streamers, canModerate = false }: PlayerProps
             Cola de <span className="font-medium text-foreground">{streamer.username}</span>
           </span>
         )}
-        <AppearanceMenu />
       </div>
 
       <Card className="gap-0 overflow-hidden border-2 border-border/60 py-0">

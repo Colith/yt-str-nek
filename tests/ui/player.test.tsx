@@ -561,18 +561,7 @@ describe("información y navegación", () => {
     expect(router.push).toHaveBeenCalledWith("/player?streamer=s2")
   })
 
-  it("ofrece volver al panel del streamer que suena", async () => {
-    playerServer([song(1)])
-    render(<Player streamer={STREAMER} streamers={[]} canModerate />)
-    await tick()
-
-    expect(screen.getByRole("link", { name: /Panel/ })).toHaveAttribute(
-      "href",
-      "/mod?streamer=s1"
-    )
-  })
-
-  it("sin acceso al panel no muestra el enlace", async () => {
+  it("no repite el enlace al panel, que ahora está en la cabecera", async () => {
     playerServer([song(1)])
     await openPlayer()
 

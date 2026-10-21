@@ -22,9 +22,30 @@ describe("POST /api/auth/login", () => {
     const res = await attempt({ username: "ana", password: "clave-correcta" })
 
     expect(res.status).toBe(200)
-    expect(await readJson(res)).toEqual({ ok: true })
+    // Ana es mod: al entrar va al panel, que es donde trabaja.
+    expect(await readJson(res)).toEqual({ ok: true, redirectTo: "/mod" })
     const session = await verifySessionToken(cookieJar.get(SESSION_COOKIE)?.value)
     expect(session).toMatchObject({ username: "ana", role: "mod" })
+  })
+
+  it("vuelve a la página de la que venía si su rol puede abrirla", async () => {
+    const res = await attempt({
+      username: "ana",
+      password: "clave-correcta",
+      callbackUrl: "/mod?streamer=s1",
+    })
+
+    expect(await readJson(res)).toEqual({ ok: true, redirectTo: "/mod?streamer=s1" })
+  })
+
+  it("si su rol no puede abrir esa página, lo manda a la suya", async () => {
+    const res = await attempt({
+      username: "ana",
+      password: "clave-correcta",
+      callbackUrl: "/users",
+    })
+
+    expect(await readJson(res)).toEqual({ ok: true, redirectTo: "/mod" })
   })
 
   it("ignora los espacios alrededor del nombre de usuario", async () => {

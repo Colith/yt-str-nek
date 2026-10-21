@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Flower2, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Wordmark } from "@/components/layout/wordmark";
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -31,16 +31,16 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, ...(callbackUrl ? { callbackUrl } : {}) }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Error al iniciar sesión");
       } else {
-        // Siempre a la portada: allí se elige modo, y un streamer acaba
-        // redirigido a su reproductor sin pasar por la pantalla intermedia.
-        router.replace("/");
+        // El servidor decide a dónde va: a la página de la que venía, si su
+        // rol puede abrirla, y si no a la que le corresponde por rol.
+        router.replace(data.redirectTo || "/");
         router.refresh();
       }
     } catch {
@@ -54,9 +54,8 @@ export function LoginForm() {
     <Card className="w-full max-w-sm shadow-xl backdrop-blur-sm border-2 border-border/60">
       <CardHeader className="text-center">
         <div className="mb-2 flex justify-center">
-          <Flower2 className="h-10 w-10 text-primary" />
+          <Wordmark className="text-3xl" />
         </div>
-        <CardTitle className="font-heading text-2xl">yt-str-nek</CardTitle>
         <CardDescription>Acceso con usuario y contraseña</CardDescription>
       </CardHeader>
       <CardContent>

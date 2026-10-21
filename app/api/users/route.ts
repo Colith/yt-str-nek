@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { requireRoles, ADMIN_ROLES } from "@/lib/authorize"
 import { parseRole, type Role } from "@/lib/auth"
+import { avatarUrl } from "@/lib/avatars"
 import { prisma } from "@/lib/prisma"
 
 const MIN_PASSWORD = 8
@@ -40,6 +41,9 @@ export async function GET() {
       role: true,
       createdAt: true,
       _count: { select: { addedBy: true } },
+      // La foto de perfil, si la tiene. Con la relación, la foto de todos los
+      // usuarios sale en la misma consulta.
+      avatar: { select: { updatedAt: true } },
     },
   })
 
@@ -51,6 +55,7 @@ export async function GET() {
       createdAt: u.createdAt,
       songsAdded: u._count.addedBy,
       isSelf: u.id === session.id,
+      avatarUrl: u.avatar ? avatarUrl(u.id, u.avatar.updatedAt) : null,
     })),
   })
 }

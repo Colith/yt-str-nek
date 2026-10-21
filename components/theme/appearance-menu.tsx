@@ -33,7 +33,7 @@ const BACKGROUNDS = [
 const itemClass =
   "flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none select-none data-[highlighted]:bg-muted"
 
-/** Fondo elegido en el último render del servidor, leído del <html>. */
+/** Fondo elegido en el <html>, que es quien lo pinta de verdad. */
 function currentArtStyle(): ArtStyle {
   return document.documentElement.dataset.art === "otaku" ? "otaku" : "normal"
 }
@@ -48,11 +48,10 @@ function currentArtStyle(): ArtStyle {
  */
 export function AppearanceMenu() {
   const { theme, setTheme } = useTheme()
-  // El layout ya dejó el estilo en <html data-art>. Se lee del DOM una vez, al
-  // montar, para no tener que pasarlo por props por todas las páginas.
-  const [artStyle, setArtStyle] = useState<ArtStyle>(() =>
-    typeof document === "undefined" ? "normal" : currentArtStyle()
-  )
+  // El fondo se lee del <html> al abrir el menú, y no al montar: así el
+  // menú marca siempre lo que se está viendo, aunque el servidor lo pintara
+  // de otra manera o se hubiera cambiado en otra pestaña.
+  const [artStyle, setArtStyle] = useState<ArtStyle>("normal")
 
   async function chooseArtStyle(next: ArtStyle) {
     const previous = artStyle
@@ -77,7 +76,11 @@ export function AppearanceMenu() {
   }
 
   return (
-    <Menu.Root>
+    <Menu.Root
+      onOpenChange={(open) => {
+        if (open) setArtStyle(currentArtStyle())
+      }}
+    >
       <Menu.Trigger
         render={
           <Button variant="ghost" size="icon" aria-label="Apariencia">

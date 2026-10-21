@@ -1,4 +1,4 @@
-# yt-str-nek 
+# Sakura Ryū
 
 Panel de moderadores para gestionar la cola de peticiones de música de un stream, sin depender del chat del canal. Interfaz con estética sakura (tema claro y oscuro) y sincronización entre varios moderadores.
 
@@ -14,36 +14,68 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - Reañadir canciones desde el historial, o vaciarlo entero de una vez
 - Tres roles: `admin`, `mod` y `streamer`
 - Gestión de usuarios desde `/users`: crear, renombrar, cambiar contraseña, rol y eliminar
+- **Foto de perfil** por usuario en `/settings`: se recorta en el navegador y se guarda en la base de datos
 - El volumen con el que escucha cada usuario se guarda en su cuenta y se recupera al entrar
 - Sincronización entre pestañas (sondeo cada 5 s + al recuperar el foco)
 - Acceso restringido por usuario y contraseña (sesión con cookie `httpOnly` firmada)
-- El acceso empieza por el login: sin sesión no hay portada, y al entrar se elige entre modo moderador y modo streamer
+- Cabecera fija en todas las páginas: a la izquierda las secciones a las que puede ir el rol, en el centro la marca y a la derecha la apariencia, los datos de la cuenta y el cierre de sesión
+- El acceso empieza por el login: sin sesión se va al login, y al entrar cada rol va directo a su página
 - Un streamer también entra al panel para añadir sus propias canciones, sin depender de un moderador
 - Reproductor en `/player` para el streamer: la música empieza y avanza sola mientras los moderadores añaden canciones
-- Transiciones de vista al navegar entre el panel, el reproductor y la portada
+- Transiciones de vista al navegar entre el panel y el reproductor
 
 ## Páginas
 
 | Ruta | Para qué |
 | --- | --- |
-| `/` | Portada tras entrar: elige modo moderador o modo streamer |
+| `/` | Redirige a la página del rol: `/mod` para admin y mod, `/player` para streamer |
 | `/login` | Inicio de sesión |
 | `/mod` | Panel: cola, búsqueda e historial de la cola elegida |
 | `/player` | Reproductor de la cola de un streamer |
 | `/users` | Gestión de usuarios, contraseñas y roles |
+| `/settings` | Ajustes de la cuenta: la foto de perfil |
 
 Todas las páginas menos `/login` exigen sesión: si entras sin ella, el proxy te lleva
-al login. Al iniciar sesión se abre la portada para elegir modo; un `streamer` no elige,
-se le redirige directamente a `/player`. Desde el panel y el reproductor se puede volver
-a la portada con **Cambiar de modo**.
+al login **recordando de dónde venías** (ruta y parámetros, `callbackUrl`). Al entrar se
+vuelve a esa página si tu rol puede abrirla; si no, se va a la que te corresponde por
+rol. Con sesión ya abierta, `/login` te manda directa a tu página.
+
+## La cabecera
+
+Todas las páginas de la aplicación llevan la misma cabecera, y cada rol ve en ella solo
+lo que puede usar. Lo que no se puede hacer no aparece: no hay botones desactivados ni
+enlaces que no llevan a ningún sitio.
+
+| | `admin` | `mod` | `streamer` |
+| --- | --- | --- | --- |
+| Izquierda | Panel · Reproductor · Usuarios | Panel · Reproductor | Mi cola · Reproductor |
+| Centro | Marca de la página (el nombre) | Ídem | Ídem |
+| Derecha | Apariencia · avatar, nombre y rol · cerrar sesión | Ídem | Ídem |
+
+- **Panel** (o **Mi cola** para un streamer) lleva a `/mod`, donde se gestiona la cola.
+- **Reproductor** lleva a `/player` **en la misma pestaña**: el enlace no abre ninguna
+  ventana nueva. En el panel, y solo si la cola abierta viene en la URL, apunta a la cola
+  que se está gestionando (`/player?streamer=<id>`).
+- **Usuarios** solo lo ve un `admin`.
+- El bloque de la derecha (avatar, nombre y rol) es un enlace a `/settings`, donde el
+  usuario cambia su foto de perfil.
+- La marca del centro es el propio nombre de la página, y lleva a la página del rol: en
+  modo normal se ve en latín (Kaushan Script, una pincelada rotunda como el rótulo de
+  una viñeta de manga) y en modo otaku en japonés, en katakana (サクラリュウ, en Yomogi,
+  letra japonesa a mano con un pelo de trazo para que se lea bien pequeña). El nombre
+  y su versión japonesa están en `lib/site.ts`: cambiar el nombre de la página es
+  cambiar una línea, no buscarla por el proyecto.
+- La sección en la que se está no es un enlace: aparece marcada con `aria-current`.
+- Los botones de la izquierda se definen por rol en `lib/navigation.ts`, sin React, para
+  poder probarlos sin montar componentes.
 
 ## Roles
 
-| Rol | Panel `/mod` | Reproductor `/player` | Usuarios `/users` |
-| --- | --- | --- | --- |
-| `admin` | Sí, todas las colas | Sí, cualquier cola | Sí |
-| `mod` | Sí, todas las colas | Sí, cualquier cola | No |
-| `streamer` | Sí, solo la suya | Solo la suya | No |
+| Rol | Panel `/mod` | Reproductor `/player` | Usuarios `/users` | En la cabecera |
+| --- | --- | --- | --- | --- |
+| `admin` | Sí, todas las colas | Sí, cualquier cola | Sí | Panel, Reproductor, Usuarios |
+| `mod` | Sí, todas las colas | Sí, cualquier cola | No | Panel, Reproductor |
+| `streamer` | Sí, solo la suya | Solo la suya | No | Mi cola, Reproductor |
 
 Un `streamer` entra al panel igual que un moderador, pero el servidor le limita a su
 propia cola: puede buscar, añadir canciones, reordenar y marcar como reproducidas sin
@@ -71,7 +103,8 @@ las demás.
   sin elegir nada. El servidor ignora cualquier otro streamer que venga en la petición,
   así que no puede ver ni tocar la cola de otro.
 - Admin y mod también pueden abrir el reproductor de cualquier streamer con
-  `/player?streamer=<id>`, o desde el botón **Reproductor** del panel.
+  `/player?streamer=<id>`, o desde el botón **Reproductor** de la cabecera, que apunta a
+  la cola que se está gestionando y se abre en la misma pestaña.
 
 Si todavía no existe ningún streamer, el panel lo avisa y un admin puede crearlo en
 `/users`.
@@ -95,6 +128,32 @@ La sesión es un JWT sin estado: no hay lista de sesiones en el servidor que pod
 Cerrar sesión borra la cookie del navegador, pero una copia de esa cookie seguiría siendo
 válida hasta que expire (7 días). Para invalidar de verdad hay que cambiar la contraseña
 del usuario.
+
+## La foto de perfil
+
+Cada usuario puede subir su propia foto desde `/settings`, a la que se llega pulsando su
+bloque en la cabecera (avatar, nombre y rol). La foto se ve en la cabecera y en la lista
+de usuarios de `/users`.
+
+- **El recorte se hace en el navegador**: la imagen se recorta a un cuadrado de 256×256
+  (el centro, que es lo que se espera de una foto de perfil) y se convierte a WebP antes
+  de subirla. Lo que llega al servidor son unos pocos KiB, no los varios megas de la foto
+  original.
+- **Se guarda en la base de datos**, en la tabla `Avatar`, no en un fichero: la aplicación
+  se despliega en Vercel, donde el disco es temporal y una foto subida a `public/` se
+  perdería en el siguiente despliegue. Va en su propia tabla para que las consultas de
+  usuario no arrastren la imagen.
+- **El tipo se deduce de los bytes del fichero**, no del `content-type` que declara el
+  cliente: lo que se comprueba es lo que después se sirve. Se aceptan PNG, JPEG y WebP, y
+  el límite son 512 KiB.
+- **Solo se ven las fotos de dentro de la aplicación**: `GET /api/avatars/<id>` exige
+  sesión, así que la imagen no se sirve en abierto. Por eso las fotos van sin optimizar
+  (el optimizador de imágenes de Next pide la URL sin la cookie de sesión) y con la
+  versión de la imagen en la URL (`?v=`), para que una foto nueva no se quede la vieja
+  en la caché.
+
+Los ajustes están preparados para crecer: ahora solo tienen la foto de perfil, pero la
+página ya tiene su sitio en la cabecera y su propia ruta.
 
 ## Reproductor
 
@@ -147,9 +206,9 @@ YouTube no lanza ningún error cuando no arranca: simplemente se queda quieta.
 
 Los navegadores pueden bloquear la reproducción automática con sonido si el visitante
 todavía no ha interactuado con la página. Normalmente basta con haber llegado al
-reproductor haciendo clic desde la portada. Si aun así el navegador lo impide, aparece
-un botón **Activar audio**: se pulsa una vez y el resto de la cola suena sola. Como
-*Browser Source* de OBS esta restricción no existe.
+reproductor haciendo clic en **Reproductor**, en la cabecera. Si aun así el navegador lo
+impide, aparece un botón **Activar audio**: se pulsa una vez y el resto de la cola suena
+sola. Como *Browser Source* de OBS esta restricción no existe.
 
 El reproductor arranca con sonido, no silenciado. Arrancar en silencio y quitarlo
 después hace que Chrome pause el vídeo, y la cola se quedaba parada.
@@ -202,13 +261,15 @@ Hay dos grupos, en `tests/`:
   proyecto, así que se prueban el mismo SQL, las mismas restricciones y las mismas
   transacciones que en producción. Solo se sustituyen las cookies de la petición y las
   llamadas a la API de YouTube.
-- **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, el panel de
-  moderadores, la gestión de usuarios, el reproductor, los hooks y lo que decide cada
-  página según la sesión. El reproductor se prueba con un doble de la IFrame API de
-  YouTube que permite simular que un vídeo empieza, termina, falla o queda bloqueado.
+- **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, la cabecera según el
+  rol, el panel de moderadores, la gestión de usuarios, los ajustes de la foto de perfil,
+  el reproductor, los hooks y lo que decide cada página según la sesión. El reproductor
+  se prueba con un doble de la IFrame API de YouTube que permite simular que un vídeo
+  empieza, termina, falla o queda bloqueado.
 
 Lo que las pruebas no ejercitan: el arrastre con el ratón para reordenar la cola, el
-`layout` raíz y la reproducción real de YouTube en un navegador.
+recorte de la foto de perfil en el canvas del navegador, el `layout` raíz y la
+reproducción real de YouTube en un navegador.
 
 ## Puesta en marcha
 
@@ -339,7 +400,7 @@ Requiere ImageMagick 7 (`magick`) y `vtracer` (`pip install vtracer`).
 
 ### Menú de Apariencia: modo normal y modo otaku
 
-El botón de paleta de la cabecera (portada, `/mod`, `/player` y `/users`) abre el
+El botón de paleta de la cabecera (`/mod`, `/player` y `/users`) abre el
 **Menú de Apariencia**, con dos ajustes guardados **en la cuenta**:
 
 - **Tema**: claro, oscuro o el del sistema (`next-themes`).
@@ -351,6 +412,12 @@ defecto). Al cargar, `app/layout.tsx` lo lee y lo pinta como `data-art` en el
 `<html>`; el CSS enseña la ilustración solo bajo `html[data-art="otaku"]`. El
 cambio se aplica al vuelo con `PUT /api/me/style`, sin recargar. Como el layout
 depende de la sesión, todas las páginas se renderizan en el servidor a petición.
+
+El logotipo sigue al fondo: con el mismo atributo `data-art`, el nombre de la
+cabecera y del login se ven en latín (Kaushan Script) en modo normal y en japonés
+(サクラリュウ, en Yomogi) en modo otaku. El componente `Wordmark` pinta las dos
+versiones y el CSS esconde la que no toca, así que el cambio es instantáneo y
+no hay parpadeo al recargar.
 
 ### Preparar la base de producción
 
