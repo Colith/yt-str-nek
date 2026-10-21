@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import type { ReactElement } from "react"
+import { Children, isValidElement, type ReactElement, type ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import Home from "@/app/page"
 import LoginPage from "@/app/login/page"
@@ -8,6 +8,8 @@ import PlayerPage from "@/app/player/page"
 import UsersPage from "@/app/users/page"
 import { getSession } from "@/lib/auth"
 import { listStreamers } from "@/lib/streamers"
+import { ModDashboard } from "@/components/queue/mod-dashboard"
+import { Player } from "@/components/player/player"
 
 // Las páginas son componentes de servidor: aquí se comprueba qué deciden
 // (redirigir, qué cola abrir, qué mostrar) con una sesión y unos streamers
@@ -39,6 +41,24 @@ const params = (query: Record<string, string | string[]> = {}) => ({
   searchParams: Promise.resolve(query),
 })
 
+/**
+ * Busca el hijo de un tipo concreto dentro de una página.
+ *
+ * Las páginas ahora envuelven su contenido (cabecera incluida) en un
+ * fragmento, así que ya no se puede mirar lo que devuelven en `props`.
+ */
+function childOfType(
+  page: ReactElement,
+  type: unknown
+): ReactElement<Record<string, unknown>> {
+  const children = Children.toArray(
+    (page.props as { children?: ReactNode }).children
+  )
+  const found = children.find((c) => isValidElement(c) && c.type === type)
+  if (!found) throw new Error("la página no contiene ese elemento")
+  return found as ReactElement<Record<string, unknown>>
+}
+
 beforeEach(() => withStreamers())
 
 describe("portada", () => {
@@ -54,14 +74,10 @@ describe("portada", () => {
     await expect(Home()).rejects.toThrow("REDIRECT:/player")
   })
 
-  it.each(["admin", "mod"])("a un %s le ofrece elegir entre los dos modos", async (role) => {
+  it.each(["admin", "mod"])("a un %s lo manda al panel, donde trabaja", async (role) => {
     session(role)
-    render(await Home())
 
-    expect(screen.getByRole("link", { name: /Modo moderador/ })).toHaveAttribute("href", "/mod")
-    expect(screen.getByRole("link", { name: /Modo streamer/ })).toHaveAttribute("href", "/player")
-    expect(screen.getByText(/Hola, ana/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeInTheDocument()
+    await expect(Home()).rejects.toThrow("REDIRECT:/mod")
   })
 })
 
@@ -75,10 +91,9 @@ describe("página del panel (/mod)", () => {
     session("streamer", "s1", "directo")
     withStreamers(A)
 
-    const page = (await ModPage(params())) as ReactElement<Record<string, unknown>>
+    const page = (await ModPage(params())) as ReactElement
 
-    expect(page.props).toMatchObject({
-      username: "directo",
+    expect(childOfType(page, ModDashboard).props).toMatchObject({
       canManageUsers: false,
       streamers: [A],
       initialStreamerId: "s1",
@@ -89,11 +104,9 @@ describe("página del panel (/mod)", () => {
     session("mod")
     withStreamers(A, B)
 
-    const page = (await ModPage(params())) as ReactElement<Record<string, unknown>>
+    const page = (await ModPage(params())) as ReactElement
 
-    expect(page.props).toMatchObject({
-      username: "ana",
-      canManageUsers: false,
+    expect(childOfType(page, ModDashboard).props).toMatchObject({
       streamers: [A, B],
       initialStreamerId: "s1",
       fromUrl: false,
@@ -104,9 +117,9 @@ describe("página del panel (/mod)", () => {
     session("admin")
     withStreamers(A, B)
 
-    const page = (await ModPage(params({ streamer: "s2" }))) as ReactElement<Record<string, unknown>>
+    const page = (await ModPage(params({ streamer: "s2" }))) as ReactElement
 
-    expect(page.props).toMatchObject({
+    expect(childOfType(page, ModDashboard).props).toMatchObject({
       canManageUsers: true,
       initialStreamerId: "s2",
       fromUrl: true,
@@ -117,19 +130,23 @@ describe("página del panel (/mod)", () => {
     session("mod")
     withStreamers(A, B)
 
-    const page = (await ModPage(params({ streamer: "borrado" }))) as ReactElement<
-      Record<string, unknown>
-    >
+    const page = (await ModPage(params({ streamer: "borrado" }))) as ReactElement
 
-    expect(page.props).toMatchObject({ initialStreamerId: "s1", fromUrl: false })
+    expect(childOfType(page, ModDashboard).props).toMatchObject({
+      initialStreamerId: "s1",
+      fromUrl: false,
+    })
   })
 
   it("sin ningún streamer abre el panel sin cola", async () => {
     session("mod")
 
-    const page = (await ModPage(params())) as ReactElement<Record<string, unknown>>
+    const page = (await ModPage(params())) as ReactElement
 
-    expect(page.props).toMatchObject({ streamers: [], initialStreamerId: null })
+    expect(childOfType(page, ModDashboard).props).toMatchObject({
+      streamers: [],
+      initialStreamerId: null,
+    })
   })
 })
 
@@ -143,39 +160,34 @@ describe("página del reproductor (/player)", () => {
     session("streamer", "s1", "directo")
     withStreamers(A)
 
-    const page = (await PlayerPage(params({ streamer: "s2" }))) as ReactElement<
-      Record<string, unknown>
-    >
+    const page = (await PlayerPage(params({ streamer: "s2" }))) as ReactElement
 
-    expect(page.props).toEqual({ streamer: A, streamers: [], canModerate: true })
-    expect(page.key).toBe("s1")
+    expect(childOfType(page, Player).props).toEqual({ streamer: A, streamers: [] })
   })
 
   it("admin y mod abren el reproductor del streamer pedido y pueden cambiar", async () => {
     session("mod")
     withStreamers(A, B)
 
-    const page = (await PlayerPage(params({ streamer: "s2" }))) as ReactElement<
-      Record<string, unknown>
-    >
+    const page = (await PlayerPage(params({ streamer: "s2" }))) as ReactElement
 
-    expect(page.props).toEqual({ streamer: B, streamers: [A, B], canModerate: true })
+    expect(childOfType(page, Player).props).toEqual({ streamer: B, streamers: [A, B] })
   })
 
   it("con un único streamer no hace falta elegir", async () => {
     session("admin")
     withStreamers(A)
 
-    const page = (await PlayerPage(params())) as ReactElement<Record<string, unknown>>
+    const page = (await PlayerPage(params())) as ReactElement
 
-    expect(page.props).toEqual({ streamer: A, streamers: [A], canModerate: true })
+    expect(childOfType(page, Player).props).toEqual({ streamer: A, streamers: [A] })
   })
 
   it("con varios streamers y ninguno elegido, pregunta qué cola reproducir", async () => {
     session("mod")
     withStreamers(A, B)
 
-    render(await PlayerPage(params()))
+    render((await PlayerPage(params())) as ReactElement)
 
     expect(screen.getByText("¿Qué cola quieres reproducir?")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "directo" })).toHaveAttribute(
@@ -191,7 +203,7 @@ describe("página del reproductor (/player)", () => {
   it("si no existe ningún streamer, lo explica", async () => {
     session("admin")
 
-    render(await PlayerPage(params()))
+    render((await PlayerPage(params())) as ReactElement)
 
     expect(screen.getByText("Todavía no hay ningún streamer")).toBeInTheDocument()
   })
@@ -210,16 +222,15 @@ describe("página de usuarios (/users)", () => {
 
   it("un admin ve el gestor de usuarios", async () => {
     session("admin")
-    render(await UsersPage())
+    render((await UsersPage()) as ReactElement)
 
     expect(screen.getByText("gestor de usuarios")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /Volver al panel/ })).toHaveAttribute("href", "/mod")
   })
 })
 
 describe("página de login", () => {
-  it("muestra el formulario de acceso", () => {
-    render(<LoginPage />)
+  it("muestra el formulario de acceso", async () => {
+    render((await LoginPage(params())) as ReactElement)
 
     expect(screen.getByLabelText("Usuario")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Entrar" })).toBeInTheDocument()

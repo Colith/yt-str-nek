@@ -38,9 +38,10 @@ describe("proxy", () => {
     expect(destination(res)).toBe("/login?callbackUrl=%2Fmod")
   })
 
-  it("el login se deja ver sin sesión, pero con sesión manda a la portada", async () => {
+  it("el login se deja ver sin sesión, pero con sesión manda a la página del rol", async () => {
     expect(destination(await visit("/login"))).toBeNull()
-    expect(destination(await visit("/login", "mod"))).toBe("/")
+    expect(destination(await visit("/login", "mod"))).toBe("/mod")
+    expect(destination(await visit("/login", "streamer"))).toBe("/player")
   })
 
   it("admin entra en todo", async () => {
@@ -52,19 +53,25 @@ describe("proxy", () => {
   it("mod entra en el panel y el reproductor, pero no en usuarios", async () => {
     expect(destination(await visit("/mod", "mod"))).toBeNull()
     expect(destination(await visit("/player", "mod"))).toBeNull()
-    expect(destination(await visit("/users", "mod"))).toBe("/")
+    expect(destination(await visit("/users", "mod"))).toBe("/mod")
   })
 
   it("streamer entra en el panel (solo su cola) y en el reproductor, pero no en usuarios", async () => {
     expect(destination(await visit("/player", "streamer"))).toBeNull()
     expect(destination(await visit("/mod", "streamer"))).toBeNull()
-    expect(destination(await visit("/users", "streamer"))).toBe("/")
+    expect(destination(await visit("/users", "streamer"))).toBe("/player")
   })
 
   it("un rol desconocido se trata como streamer", async () => {
     expect(destination(await visit("/player", "inventado"))).toBeNull()
     expect(destination(await visit("/mod", "inventado"))).toBeNull()
-    expect(destination(await visit("/users", "inventado"))).toBe("/")
+    expect(destination(await visit("/users", "inventado"))).toBe("/player")
+  })
+
+  it("el destino al entrar conserva los parámetros de la página", async () => {
+    expect(destination(await visit("/mod?streamer=s1"))).toBe(
+      "/login?callbackUrl=%2Fmod%3Fstreamer%3Ds1"
+    )
   })
 
   it("vigila el login y las tres zonas protegidas", () => {

@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation"
-import { getSession, hasRole, PANEL_ACCESS_ROLES, PANEL_ROLES } from "@/lib/auth"
+import { getSession, hasRole, PANEL_ACCESS_ROLES } from "@/lib/auth"
+import { SITE } from "@/lib/site"
 import { listStreamers } from "@/lib/streamers"
 import { ModDashboard } from "@/components/queue/mod-dashboard"
+import { AppHeader } from "@/components/layout/app-header"
+
+export const metadata = {
+  title: `Panel · ${SITE.name}`,
+}
 
 export default async function ModPage({
   searchParams,
@@ -26,13 +32,26 @@ export default async function ModPage({
   const initialStreamerId = fromUrl ? requestedId : (streamers[0]?.id ?? null)
 
   return (
-    <ModDashboard
-      username={session.username}
-      canManageUsers={session.role === "admin"}
-      canSwitchMode={hasRole(session, PANEL_ROLES)}
-      streamers={streamers}
-      initialStreamerId={initialStreamerId}
-      fromUrl={fromUrl}
-    />
+    <>
+      <AppHeader
+        session={session}
+        active="panel"
+        // El reproductor de la cabecera abre la cola que se está gestionando.
+        // Solo cuando viene en la URL: si no, se abre el reproductor en general
+        // y así nunca apunta a una cola distinta de la que se está viendo.
+        playerHref={
+          fromUrl && requestedId
+            ? `/player?streamer=${encodeURIComponent(requestedId)}`
+            : undefined
+        }
+      />
+
+      <ModDashboard
+        canManageUsers={session.role === "admin"}
+        streamers={streamers}
+        initialStreamerId={initialStreamerId}
+        fromUrl={fromUrl}
+      />
+    </>
   )
 }

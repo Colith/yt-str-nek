@@ -6,6 +6,7 @@ import { SakuraPetals } from "@/components/sakura/sakura-petals"
 import { MangaArtwork } from "@/components/background/manga-artwork"
 import { getSession } from "@/lib/auth"
 import { getArtStyle } from "@/lib/preferences"
+import { SITE } from "@/lib/site"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,8 +20,8 @@ const notoSerifJP = Noto_Serif_JP({
 })
 
 export const metadata: Metadata = {
-  title: "yt-str-nek",
-  description: "Gestor de cola de música para streamers y moderadores",
+  title: SITE.name,
+  description: SITE.tagline,
   icons: {
     icon: [
       { url: "/favicon-512.png", sizes: "512x512" },

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import { LoginForm } from "@/components/auth/login-form"
 import { mockApi } from "../helpers/fetch"
-import { router, setSearchParams } from "../helpers/navigation"
+import { router } from "../helpers/navigation"
 
 async function fillAndSubmit(username = "ana", password = "clave-correcta") {
   const user = userEvent.setup()
@@ -14,13 +14,13 @@ async function fillAndSubmit(username = "ana", password = "clave-correcta") {
 }
 
 describe("formulario de login", () => {
-  it("envía las credenciales y, si son correctas, entra a la portada", async () => {
-    const api = mockApi(() => ({ body: { ok: true } }))
+  it("envía las credenciales y, si son correctas, va a donde manda el servidor", async () => {
+    const api = mockApi(() => ({ body: { ok: true, redirectTo: "/mod" } }))
     render(<LoginForm />)
 
     await fillAndSubmit()
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/mod"))
     expect(router.refresh).toHaveBeenCalled()
     expect(api.to("POST", "/api/auth/login")[0].body).toEqual({
       username: "ana",
@@ -28,17 +28,20 @@ describe("formulario de login", () => {
     })
   })
 
-  it("ignora el destino guardado y vuelve siempre a la portada", async () => {
-    // El proxy puede añadir callbackUrl, pero la elección de modo (y el salto
-    // automático del streamer) manda desde la portada.
-    setSearchParams("callbackUrl=/player")
-    mockApi(() => ({ body: { ok: true } }))
-    render(<LoginForm />)
+  it("envía la página de la que venía, para volver a ella al entrar", async () => {
+    const api = mockApi(() => ({ body: { ok: true, redirectTo: "/mod?streamer=s1" } }))
+    render(<LoginForm callbackUrl="/mod?streamer=s1" />)
 
     await fillAndSubmit()
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
-    expect(router.push).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith("/mod?streamer=s1")
+    )
+    expect(api.to("POST", "/api/auth/login")[0].body).toEqual({
+      username: "ana",
+      password: "clave-correcta",
+      callbackUrl: "/mod?streamer=s1",
+    })
   })
 
   it("muestra el error del servidor y no navega si las credenciales fallan", async () => {

@@ -17,33 +17,57 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - El volumen con el que escucha cada usuario se guarda en su cuenta y se recupera al entrar
 - Sincronización entre pestañas (sondeo cada 5 s + al recuperar el foco)
 - Acceso restringido por usuario y contraseña (sesión con cookie `httpOnly` firmada)
-- El acceso empieza por el login: sin sesión no hay portada, y al entrar se elige entre modo moderador y modo streamer
+- Cabecera fija en todas las páginas: a la izquierda las secciones a las que puede ir el rol, en el centro la marca y a la derecha la apariencia, los datos de la cuenta y el cierre de sesión
+- El acceso empieza por el login: sin sesión se va al login, y al entrar cada rol va directo a su página
 - Un streamer también entra al panel para añadir sus propias canciones, sin depender de un moderador
 - Reproductor en `/player` para el streamer: la música empieza y avanza sola mientras los moderadores añaden canciones
-- Transiciones de vista al navegar entre el panel, el reproductor y la portada
+- Transiciones de vista al navegar entre el panel y el reproductor
 
 ## Páginas
 
 | Ruta | Para qué |
 | --- | --- |
-| `/` | Portada tras entrar: elige modo moderador o modo streamer |
+| `/` | Redirige a la página del rol: `/mod` para admin y mod, `/player` para streamer |
 | `/login` | Inicio de sesión |
 | `/mod` | Panel: cola, búsqueda e historial de la cola elegida |
 | `/player` | Reproductor de la cola de un streamer |
 | `/users` | Gestión de usuarios, contraseñas y roles |
 
 Todas las páginas menos `/login` exigen sesión: si entras sin ella, el proxy te lleva
-al login. Al iniciar sesión se abre la portada para elegir modo; un `streamer` no elige,
-se le redirige directamente a `/player`. Desde el panel y el reproductor se puede volver
-a la portada con **Cambiar de modo**.
+al login **recordando de dónde venías** (ruta y parámetros, `callbackUrl`). Al entrar se
+vuelve a esa página si tu rol puede abrirla; si no, se va a la que te corresponde por
+rol. Con sesión ya abierta, `/login` te manda directa a tu página.
+
+## La cabecera
+
+Todas las páginas de la aplicación llevan la misma cabecera, y cada rol ve en ella solo
+lo que puede usar. Lo que no se puede hacer no aparece: no hay botones desactivados ni
+enlaces que no llevan a ningún sitio.
+
+| | `admin` | `mod` | `streamer` |
+| --- | --- | --- | --- |
+| Izquierda | Panel · Reproductor · Usuarios | Panel · Reproductor | Mi cola · Reproductor |
+| Centro | Marca de la página (logo y nombre) | Ídem | Ídem |
+| Derecha | Apariencia · avatar, nombre y rol · cerrar sesión | Ídem | Ídem |
+
+- **Panel** (o **Mi cola** para un streamer) lleva a `/mod`, donde se gestiona la cola.
+- **Reproductor** se abre **en otra pestaña**: así la música sigue sonando mientras se
+  sigue trabajando en el panel. En el panel, y solo si la cola abierta viene en la URL,
+  apunta a la cola que se está gestionando (`/player?streamer=<id>`).
+- **Usuarios** solo lo ve un `admin`.
+- La marca del centro lleva a la página del rol, y su nombre está en `lib/site.ts`:
+  cambiar el nombre de la página es cambiar una línea, no buscarla por el proyecto.
+- La sección en la que se está no es un enlace: aparece marcada con `aria-current`.
+- Los botones de la izquierda se definen por rol en `lib/navigation.ts`, sin React, para
+  poder probarlos sin montar componentes.
 
 ## Roles
 
-| Rol | Panel `/mod` | Reproductor `/player` | Usuarios `/users` |
-| --- | --- | --- | --- |
-| `admin` | Sí, todas las colas | Sí, cualquier cola | Sí |
-| `mod` | Sí, todas las colas | Sí, cualquier cola | No |
-| `streamer` | Sí, solo la suya | Solo la suya | No |
+| Rol | Panel `/mod` | Reproductor `/player` | Usuarios `/users` | En la cabecera |
+| --- | --- | --- | --- | --- |
+| `admin` | Sí, todas las colas | Sí, cualquier cola | Sí | Panel, Reproductor, Usuarios |
+| `mod` | Sí, todas las colas | Sí, cualquier cola | No | Panel, Reproductor |
+| `streamer` | Sí, solo la suya | Solo la suya | No | Mi cola, Reproductor |
 
 Un `streamer` entra al panel igual que un moderador, pero el servidor le limita a su
 propia cola: puede buscar, añadir canciones, reordenar y marcar como reproducidas sin
@@ -71,7 +95,8 @@ las demás.
   sin elegir nada. El servidor ignora cualquier otro streamer que venga en la petición,
   así que no puede ver ni tocar la cola de otro.
 - Admin y mod también pueden abrir el reproductor de cualquier streamer con
-  `/player?streamer=<id>`, o desde el botón **Reproductor** del panel.
+  `/player?streamer=<id>`, o desde el botón **Reproductor** de la cabecera, que se abre
+  en otra pestaña y apunta a la cola que se está gestionando.
 
 Si todavía no existe ningún streamer, el panel lo avisa y un admin puede crearlo en
 `/users`.
@@ -147,9 +172,9 @@ YouTube no lanza ningún error cuando no arranca: simplemente se queda quieta.
 
 Los navegadores pueden bloquear la reproducción automática con sonido si el visitante
 todavía no ha interactuado con la página. Normalmente basta con haber llegado al
-reproductor haciendo clic desde la portada. Si aun así el navegador lo impide, aparece
-un botón **Activar audio**: se pulsa una vez y el resto de la cola suena sola. Como
-*Browser Source* de OBS esta restricción no existe.
+reproductor haciendo clic en **Reproductor**, en la cabecera. Si aun así el navegador lo
+impide, aparece un botón **Activar audio**: se pulsa una vez y el resto de la cola suena
+sola. Como *Browser Source* de OBS esta restricción no existe.
 
 El reproductor arranca con sonido, no silenciado. Arrancar en silencio y quitarlo
 después hace que Chrome pause el vídeo, y la cola se quedaba parada.
@@ -202,10 +227,11 @@ Hay dos grupos, en `tests/`:
   proyecto, así que se prueban el mismo SQL, las mismas restricciones y las mismas
   transacciones que en producción. Solo se sustituyen las cookies de la petición y las
   llamadas a la API de YouTube.
-- **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, el panel de
-  moderadores, la gestión de usuarios, el reproductor, los hooks y lo que decide cada
-  página según la sesión. El reproductor se prueba con un doble de la IFrame API de
-  YouTube que permite simular que un vídeo empieza, termina, falla o queda bloqueado.
+- **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, la cabecera según el
+  rol, el panel de moderadores, la gestión de usuarios, el reproductor, los hooks y lo que
+  decide cada página según la sesión. El reproductor se prueba con un doble de la IFrame
+  API de YouTube que permite simular que un vídeo empieza, termina, falla o queda
+  bloqueado.
 
 Lo que las pruebas no ejercitan: el arrastre con el ratón para reordenar la cola, el
 `layout` raíz y la reproducción real de YouTube en un navegador.
@@ -339,7 +365,7 @@ Requiere ImageMagick 7 (`magick`) y `vtracer` (`pip install vtracer`).
 
 ### Menú de Apariencia: modo normal y modo otaku
 
-El botón de paleta de la cabecera (portada, `/mod`, `/player` y `/users`) abre el
+El botón de paleta de la cabecera (`/mod`, `/player` y `/users`) abre el
 **Menú de Apariencia**, con dos ajustes guardados **en la cuenta**:
 
 - **Tema**: claro, oscuro o el del sistema (`next-themes`).

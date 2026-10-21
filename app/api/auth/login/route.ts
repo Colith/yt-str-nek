@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createSession, verifyCredentials } from "@/lib/auth"
+import { resolveLoginTarget } from "@/lib/navigation"
 
 const loginSchema = z.object({
   username: z.string().trim().min(1, "Usuario requerido"),
   password: z.string().min(1, "Contraseña requerida"),
+  // A dónde quería ir el visitante antes de que le pidiera la contraseña.
+  // Se valida aquí, en el servidor: el cliente no decide a dónde va.
+  callbackUrl: z.string().optional(),
 })
 
 export async function POST(req: Request) {
@@ -29,7 +33,13 @@ export async function POST(req: Request) {
     }
 
     await createSession(user)
-    return NextResponse.json({ ok: true })
+
+    // Se devuelve a dónde debe ir: a la página de la que venía, si su rol
+    // puede abrirla, y si no a la que le corresponde por rol.
+    return NextResponse.json({
+      ok: true,
+      redirectTo: resolveLoginTarget(user.role, parsed.data.callbackUrl),
+    })
   } catch (err) {
     console.error("[login] error:", err)
     const message =
