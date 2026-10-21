@@ -61,10 +61,10 @@ enlaces que no llevan a ningún sitio.
   usuario cambia su foto de perfil.
 - La marca del centro es el propio nombre de la página, y lleva a la página del rol: en
   modo normal se ve en latín (Kaushan Script, una pincelada rotunda como el rótulo de
-  una viñeta de manga) y en modo otaku en japonés (桜龍, en Yomogi, letra japonesa a
-  mano con un pelo de trazo para que se lea bien pequeña). El nombre y su versión
-  japonesa están en `lib/site.ts`: cambiar el nombre de la página es cambiar una
-  línea, no buscarla por el proyecto.
+  una viñeta de manga) y en modo otaku en japonés, en katakana (サクラリュウ, en Yomogi,
+  letra japonesa a mano con un pelo de trazo para que se lea bien pequeña). El nombre
+  y su versión japonesa están en `lib/site.ts`: cambiar el nombre de la página es
+  cambiar una línea, no buscarla por el proyecto.
 - La sección en la que se está no es un enlace: aparece marcada con `aria-current`.
 - Los botones de la izquierda se definen por rol en `lib/navigation.ts`, sin React, para
   poder probarlos sin montar componentes.
@@ -415,7 +415,7 @@ depende de la sesión, todas las páginas se renderizan en el servidor a petici�
 
 El logotipo sigue al fondo: con el mismo atributo `data-art`, el nombre de la
 cabecera y del login se ven en latín (Kaushan Script) en modo normal y en japonés
-(桜龍, en Yomogi) en modo otaku. El componente `Wordmark` pinta las dos
+(サクラリュウ, en Yomogi) en modo otaku. El componente `Wordmark` pinta las dos
 versiones y el CSS esconde la que no toca, así que el cambio es instantáneo y
 no hay parpadeo al recargar.
 

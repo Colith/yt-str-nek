@@ -7,7 +7,7 @@
 export const SITE = {
   /** Nombre en alfabeto latino, el que se ve en modo normal. */
   name: "Sakura Ryū",
-  /** Nombre en japonés, el que se ve en modo otaku. */
-  nameJa: "桜龍",
+  /** Nombre en japonés (katakana), el que se ve en modo otaku. */
+  nameJa: "サクラリュウ",
   tagline: "Cola de música para streams",
 } as const

@@ -30,9 +30,9 @@ const kaushan = Kaushan_Script({
 })
 
 // Yomogi: letra japonesa a mano, de rotulador. El subset solo decide qué
-// archivos se precargan: los kanji (桜龍) siguen viniendo, porque Google los
-// reparte en rangos de caracteres que el navegador pide solo cuando hacen
-// falta.
+// archivos se precargan: las letras japonesas (サクラリュウ) siguen viniendo,
+// porque Google las reparte en rangos de caracteres que el navegador pide
+// solo cuando hacen falta.
 const yomogi = Yomogi({
   subsets: ["latin"],
   variable: "--font-yomogi",

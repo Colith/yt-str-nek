@@ -11,13 +11,13 @@ describe("logotipo", () => {
     render(<Wordmark />)
 
     expect(screen.getByText("Sakura Ryū")).toBeInTheDocument()
-    expect(screen.getByText("桜龍")).toBeInTheDocument()
+    expect(screen.getByText("サクラリュウ")).toBeInTheDocument()
   })
 
   it("el nombre japonés se marca como japonés, para que se lea así", () => {
     render(<Wordmark />)
 
-    expect(screen.getByText("桜龍")).toHaveAttribute("lang", "ja")
+    expect(screen.getByText("サクラリュウ")).toHaveAttribute("lang", "ja")
   })
 
   it("el tamaño lo pone quien lo usa", () => {
@@ -30,7 +30,7 @@ describe("logotipo", () => {
     render(<Wordmark />)
 
     expect(screen.getByText("Sakura Ryū")).toHaveClass("font-display")
-    expect(screen.getByText("桜龍")).toHaveClass("font-jp-display")
+    expect(screen.getByText("サクラリュウ")).toHaveClass("font-jp-display")
   })
 
   it("no lleva flor: el logotipo es solo el nombre", () => {
