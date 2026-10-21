@@ -32,6 +32,12 @@ describe("logotipo", () => {
     expect(screen.getByText("Sakura Ryū")).toHaveClass("font-display")
     expect(screen.getByText("桜龍")).toHaveClass("font-jp-display")
   })
+
+  it("no lleva flor: el logotipo es solo el nombre", () => {
+    const { container } = render(<Wordmark />)
+
+    expect(container.querySelector("svg")).toBeNull()
+  })
 })
 
 describe("el logotipo cambia con el modo", () => {
@@ -51,5 +57,11 @@ describe("el logotipo cambia con el modo", () => {
   it("las dos versiones van escritas a mano", () => {
     expect(CSS).toMatch(/--font-display:\s*var\(--font-kaushan\)/)
     expect(CSS).toMatch(/--font-jp-display:\s*var\(--font-yomogi\)/)
+  })
+
+  it("las letras japonesas llevan un pelo de trazo, para que se lean bien", () => {
+    expect(CSS).toMatch(
+      /html\[data-art="otaku"\]\s+\.wordmark-jp\s*\{[^}]*-webkit-text-stroke/
+    )
   })
 })

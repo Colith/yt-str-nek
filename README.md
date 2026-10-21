@@ -62,8 +62,9 @@ enlaces que no llevan a ningún sitio.
 - La marca del centro es el propio nombre de la página, y lleva a la página del rol: en
   modo normal se ve en latín (Kaushan Script, una pincelada rotunda como el rótulo de
   una viñeta de manga) y en modo otaku en japonés (桜龍, en Yomogi, letra japonesa a
-  mano). El nombre y su versión japonesa están en `lib/site.ts`: cambiar el nombre de
-  la página es cambiar una línea, no buscarla por el proyecto.
+  mano con un pelo de trazo para que se lea bien pequeña). El nombre y su versión
+  japonesa están en `lib/site.ts`: cambiar el nombre de la página es cambiar una
+  línea, no buscarla por el proyecto.
 - La sección en la que se está no es un enlace: aparece marcada con `aria-current`.
 - Los botones de la izquierda se definen por rol en `lib/navigation.ts`, sin React, para
   poder probarlos sin montar componentes.

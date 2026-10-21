@@ -156,6 +156,10 @@
 
   html[data-art="otaku"] .wordmark-jp {
     display: inline;
+    /* Yomogi solo tiene un peso y es fina: un pelo de trazo la engorda sin
+       falsearla como lo haría la negrita sintética. Va en currentColor para
+       seguir al tema, y en em para escalar con el tamaño de la marca. */
+    -webkit-text-stroke: 0.03em currentColor;
   }
 
   /* Barras del reproductor, con la pinta de las de YouTube: línea fina, se
