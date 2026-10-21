@@ -48,12 +48,11 @@ describe("cabecera", () => {
     expect(screen.queryByRole("link", { name: "Panel" })).not.toBeInTheDocument()
   })
 
-  it("el reproductor se abre en otra pestaña, para no parar la música", () => {
+  it("el reproductor se abre en la misma pestaña", () => {
     renderHeader()
 
-    expect(screen.getByRole("link", { name: "Reproductor" })).toHaveAttribute(
-      "target",
-      "_blank"
+    expect(screen.getByRole("link", { name: "Reproductor" })).not.toHaveAttribute(
+      "target"
     )
     expect(screen.getByRole("link", { name: "Panel" })).not.toHaveAttribute("target")
   })
@@ -85,10 +84,10 @@ describe("cabecera", () => {
 
   it("la marca lleva a la página del rol", () => {
     const { rerender } = renderHeader()
-    expect(screen.getByRole("link", { name: /yt-str-nek/ })).toHaveAttribute("href", "/mod")
+    expect(screen.getByRole("link", { name: /Sakura Ryū/ })).toHaveAttribute("href", "/mod")
 
     rerender(<AppHeader session={{ ...SESSION, role: "streamer" }} />)
-    expect(screen.getByRole("link", { name: /yt-str-nek/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Sakura Ryū/ })).toHaveAttribute(
       "href",
       "/player"
     )

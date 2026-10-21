@@ -2,18 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Flower2, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SITE } from "@/lib/site";
+import { Wordmark } from "@/components/layout/wordmark";
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
@@ -55,9 +54,8 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
     <Card className="w-full max-w-sm shadow-xl backdrop-blur-sm border-2 border-border/60">
       <CardHeader className="text-center">
         <div className="mb-2 flex justify-center">
-          <Flower2 className="h-10 w-10 text-primary" />
+          <Wordmark className="text-3xl" />
         </div>
-        <CardTitle className="font-heading text-2xl">{SITE.name}</CardTitle>
         <CardDescription>Acceso con usuario y contraseña</CardDescription>
       </CardHeader>
       <CardContent>

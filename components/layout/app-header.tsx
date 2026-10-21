@@ -1,9 +1,9 @@
 import Link from "next/link"
-import Image from "next/image"
 import { ListMusic, Radio, Users } from "lucide-react"
 import { AppearanceMenu } from "@/components/theme/appearance-menu"
 import { LogoutButton } from "@/components/layout/logout-button"
 import { UserAvatar } from "@/components/layout/user-avatar"
+import { Wordmark } from "@/components/layout/wordmark"
 import { defaultPathForRole, getHeaderItems, roleLabel, type HeaderSection } from "@/lib/navigation"
 import { SITE } from "@/lib/site"
 import type { SessionUser } from "@/lib/session"
@@ -49,8 +49,8 @@ export function AppHeader({ session, active, playerHref }: AppHeaderProps) {
             const href = item.key === "player" ? (playerHref ?? item.href) : item.href
 
             // La sección en la que se está no es un enlace: pulsarla no
-            // lleva a ninguna parte y abrir el reproductor en otra pestaña
-            // desde el propio reproductor solo duplicaría la música.
+            // lleva a ninguna parte, y en el reproductor abriría otra vez
+            // la misma cola.
             if (item.key === active) {
               return (
                 <span
@@ -69,8 +69,6 @@ export function AppHeader({ session, active, playerHref }: AppHeaderProps) {
               <Link
                 key={item.key}
                 href={href}
-                target={item.newTab ? "_blank" : undefined}
-                rel={item.newTab ? "noreferrer" : undefined}
                 title={item.description}
                 className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
@@ -85,20 +83,9 @@ export function AppHeader({ session, active, playerHref }: AppHeaderProps) {
         <Link
           href={defaultPathForRole(session.role)}
           title={SITE.name}
-          aria-label={SITE.name}
-          className="flex items-center gap-2 rounded-lg px-1 py-1 transition-opacity hover:opacity-80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex items-center rounded-lg px-1 py-1 transition-opacity hover:opacity-80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <Image
-            src={SITE.logo}
-            alt=""
-            width={32}
-            height={32}
-            className="h-7 w-7"
-            priority
-          />
-          <span className="hidden font-heading text-base font-semibold tracking-tight sm:inline">
-            {SITE.name}
-          </span>
+          <Wordmark className="text-lg" />
         </Link>
 
         {/* Derecha: apariencia y datos de la cuenta. */}

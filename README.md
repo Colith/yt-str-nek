@@ -1,4 +1,4 @@
-# yt-str-nek 
+# Sakura Ryū
 
 Panel de moderadores para gestionar la cola de peticiones de música de un stream, sin depender del chat del canal. Interfaz con estética sakura (tema claro y oscuro) y sincronización entre varios moderadores.
 
@@ -47,16 +47,18 @@ enlaces que no llevan a ningún sitio.
 | | `admin` | `mod` | `streamer` |
 | --- | --- | --- | --- |
 | Izquierda | Panel · Reproductor · Usuarios | Panel · Reproductor | Mi cola · Reproductor |
-| Centro | Marca de la página (logo y nombre) | Ídem | Ídem |
+| Centro | Marca de la página (el nombre) | Ídem | Ídem |
 | Derecha | Apariencia · avatar, nombre y rol · cerrar sesión | Ídem | Ídem |
 
 - **Panel** (o **Mi cola** para un streamer) lleva a `/mod`, donde se gestiona la cola.
-- **Reproductor** se abre **en otra pestaña**: así la música sigue sonando mientras se
-  sigue trabajando en el panel. En el panel, y solo si la cola abierta viene en la URL,
-  apunta a la cola que se está gestionando (`/player?streamer=<id>`).
+- **Reproductor** lleva a `/player` **en la misma pestaña**: el enlace no abre ninguna
+  ventana nueva. En el panel, y solo si la cola abierta viene en la URL, apunta a la cola
+  que se está gestionando (`/player?streamer=<id>`).
 - **Usuarios** solo lo ve un `admin`.
-- La marca del centro lleva a la página del rol, y su nombre está en `lib/site.ts`:
-  cambiar el nombre de la página es cambiar una línea, no buscarla por el proyecto.
+- La marca del centro es el propio nombre de la página, y lleva a la página del rol: en
+  modo normal se ve en latín (Cormorant Garamond) y en modo otaku en japonés (桜龍, en
+  Shippori Mincho). El nombre y su versión japonesa están en `lib/site.ts`: cambiar el
+  nombre de la página es cambiar una línea, no buscarla por el proyecto.
 - La sección en la que se está no es un enlace: aparece marcada con `aria-current`.
 - Los botones de la izquierda se definen por rol en `lib/navigation.ts`, sin React, para
   poder probarlos sin montar componentes.
@@ -95,8 +97,8 @@ las demás.
   sin elegir nada. El servidor ignora cualquier otro streamer que venga en la petición,
   así que no puede ver ni tocar la cola de otro.
 - Admin y mod también pueden abrir el reproductor de cualquier streamer con
-  `/player?streamer=<id>`, o desde el botón **Reproductor** de la cabecera, que se abre
-  en otra pestaña y apunta a la cola que se está gestionando.
+  `/player?streamer=<id>`, o desde el botón **Reproductor** de la cabecera, que apunta a
+  la cola que se está gestionando y se abre en la misma pestaña.
 
 Si todavía no existe ningún streamer, el panel lo avisa y un admin puede crearlo en
 `/users`.
@@ -377,6 +379,12 @@ defecto). Al cargar, `app/layout.tsx` lo lee y lo pinta como `data-art` en el
 `<html>`; el CSS enseña la ilustración solo bajo `html[data-art="otaku"]`. El
 cambio se aplica al vuelo con `PUT /api/me/style`, sin recargar. Como el layout
 depende de la sesión, todas las páginas se renderizan en el servidor a petición.
+
+El logotipo sigue al fondo: con el mismo atributo `data-art`, el nombre de la
+cabecera y del login se ven en latín (Cormorant Garamond) en modo normal y en
+japonés (桜龍, en Shippori Mincho) en modo otaku. El componente `Wordmark` pinta
+las dos versiones y el CSS esconde la que no toca, así que el cambio es
+instantáneo y no hay parpadeo al recargar.
 
 ### Preparar la base de producción
 

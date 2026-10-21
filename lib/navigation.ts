@@ -20,8 +20,6 @@ export interface HeaderItem {
   href: string
   /** Icono, por nombre: el componente lo elige al pintarlo. */
   icon: "queue" | "player" | "users"
-  /** Si se abre en otra pestaña: el reproductor se deja en marcha. */
-  newTab?: boolean
 }
 
 /** Secciones a las que puede ir cada rol. */
@@ -56,8 +54,6 @@ export function isAdmin(role: string): boolean {
  *
  * Solo aparecen las secciones que ese rol puede abrir: un mod no ve el
  * panel de usuarios y un streamer no ve nada del panel de administración.
- * El reproductor se abre en otra pestaña, porque se deja sonando mientras
- * se sigue trabajando en el panel.
  */
 export function getHeaderItems(role: string): HeaderItem[] {
   const streamer = asRole(role) === "streamer"
@@ -73,10 +69,9 @@ export function getHeaderItems(role: string): HeaderItem[] {
     {
       key: "player",
       label: "Reproductor",
-      description: "Reproductor (se abre en otra pestaña)",
+      description: "Reproductor de la cola",
       href: "/player",
       icon: "player",
-      newTab: true,
     },
     ...(isAdmin(role)
       ? [

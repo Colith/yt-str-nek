@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Inter, Noto_Serif_JP } from "next/font/google"
+import { Cormorant_Garamond, Inter, Noto_Serif_JP, Shippori_Mincho } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { SakuraPetals } from "@/components/sakura/sakura-petals"
@@ -17,6 +17,24 @@ const notoSerifJP = Noto_Serif_JP({
   subsets: ["latin"],
   variable: "--font-noto-serif-jp",
   weight: ["400", "500", "600", "700"],
+})
+
+// Las dos tipografías del logotipo: la latina, elegante y de mucho contraste,
+// y la japonesa, que es la que aparece en modo otaku.
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  variable: "--font-cormorant",
+  weight: ["500", "600"],
+})
+
+// Mincho: la voz clásica del japonés impreso, la del logotipo en modo otaku.
+// El subset solo decide qué archivos se precargan: los kanji (桜龍) siguen
+// viniendo, porque Google los reparte en rangos de caracteres que el
+// navegador pide solo cuando hacen falta.
+const shippori = Shippori_Mincho({
+  subsets: ["latin"],
+  variable: "--font-shippori",
+  weight: ["600"],
 })
 
 export const metadata: Metadata = {
@@ -49,7 +67,9 @@ export default async function RootLayout({
 
   return (
     <html lang="es" data-art={artStyle} suppressHydrationWarning>
-      <body className={`${inter.variable} ${notoSerifJP.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} ${notoSerifJP.variable} ${cormorant.variable} ${shippori.variable} font-sans antialiased`}
+      >
         <Providers>
           <MangaArtwork />
           <SakuraPetals />

@@ -28,11 +28,11 @@ describe("botones de la cabecera", () => {
     expect(items[0].href).toBe("/mod")
   })
 
-  it("el reproductor se abre siempre en otra pestaña", () => {
+  it("el reproductor se abre en la misma pestaña", () => {
     for (const role of ["admin", "mod", "streamer"]) {
       const player = getHeaderItems(role).find((i) => i.key === "player")
-      expect(player?.newTab).toBe(true)
       expect(player?.href).toBe("/player")
+      expect(player).not.toHaveProperty("newTab")
     }
   })
 
