@@ -28,6 +28,24 @@ model User {
   // Solo se usan si el usuario es streamer: su cola y lo que ya sonó en ella.
   queue     QueueItem[]   @relation("StreamerQueue")
   history   HistoryItem[] @relation("StreamerHistory")
+  // Foto de perfil, si la ha subido. Va en su propia tabla para que las
+  // consultas de usuario no arrastren la imagen.
+  avatar    Avatar?      @relation("UserAvatar")
+}
+
+// La foto de perfil del usuario.
+//
+// Se guarda en la base de datos y no en un fichero porque la aplicación se
+// despliega en Vercel, donde el disco es temporal: una foto subida a
+// public/ se perdería en el siguiente despliegue. La imagen llega ya
+// recortada a 256x256 desde el navegador, así que ocupa unos pocos KiB.
+model Avatar {
+  userId    String   @id
+  data      Bytes
+  // Tipo real de la imagen: "image/png", "image/jpeg" o "image/webp".
+  type      String
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserAvatar", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Song {

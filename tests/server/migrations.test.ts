@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createTestDatabase, migrationNames, migrationSql } from "../helpers/db"
 
 const PER_STREAMER = "20261008235900_queue_per_streamer"
-const ART_STYLE = "20261014131451_add_user_art_style"
+const AVATAR = "20261021165136_add_user_avatar"
 
 /** Base con el esquema anterior a las colas por streamer y datos de entonces. */
 async function legacyDatabase(users: string) {
@@ -21,7 +21,7 @@ async function legacyDatabase(users: string) {
 
 describe("migración a colas por streamer", () => {
   it("es la última migración del proyecto", () => {
-    expect(migrationNames().at(-1)).toBe(ART_STYLE)
+    expect(migrationNames().at(-1)).toBe(AVATAR)
   })
 
   it("entrega la cola y el historial compartidos al streamer más antiguo", async () => {
@@ -71,5 +71,30 @@ describe("migración a colas por streamer", () => {
       pg.exec(`INSERT INTO "QueueItem"(id, position, "songId", "streamerId")
                VALUES ('q1', 1, 's1', 'no-existe')`)
     ).rejects.toThrow(/foreign key/)
+  })
+})
+
+describe("migración de la foto de perfil", () => {
+  it("una foto como mucho por usuario, y se va con él", async () => {
+    const pg = await createTestDatabase()
+    await pg.exec(`INSERT INTO "User"(id, username, password, role, "createdAt", "updatedAt")
+                   VALUES ('u1', 'ana', 'x', 'mod', now(), now())`)
+    await pg.exec(`INSERT INTO "Avatar"("userId", data, type, "updatedAt")
+                   VALUES ('u1', '\\x89504e47'::bytea, 'image/png', now())`)
+
+    // Otra foto para el mismo usuario: la clave primaria lo impide.
+    await expect(
+      pg.exec(`INSERT INTO "Avatar"("userId", data, type, "updatedAt")
+               VALUES ('u1', '\\x89'::bytea, 'image/png', now())`)
+    ).rejects.toThrow(/duplicate/)
+
+    // Y no hay foto de alguien que no existe.
+    await expect(
+      pg.exec(`INSERT INTO "Avatar"("userId", data, type, "updatedAt")
+               VALUES ('nadie', '\\x89'::bytea, 'image/png', now())`)
+    ).rejects.toThrow(/foreign key/)
+
+    await pg.exec(`DELETE FROM "User" WHERE id = 'u1'`)
+    expect((await pg.query(`SELECT * FROM "Avatar"`)).rows).toEqual([])
   })
 })

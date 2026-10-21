@@ -14,6 +14,7 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 - Reañadir canciones desde el historial, o vaciarlo entero de una vez
 - Tres roles: `admin`, `mod` y `streamer`
 - Gestión de usuarios desde `/users`: crear, renombrar, cambiar contraseña, rol y eliminar
+- **Foto de perfil** por usuario en `/settings`: se recorta en el navegador y se guarda en la base de datos
 - El volumen con el que escucha cada usuario se guarda en su cuenta y se recupera al entrar
 - Sincronización entre pestañas (sondeo cada 5 s + al recuperar el foco)
 - Acceso restringido por usuario y contraseña (sesión con cookie `httpOnly` firmada)
@@ -32,6 +33,7 @@ Panel de moderadores para gestionar la cola de peticiones de música de un strea
 | `/mod` | Panel: cola, búsqueda e historial de la cola elegida |
 | `/player` | Reproductor de la cola de un streamer |
 | `/users` | Gestión de usuarios, contraseñas y roles |
+| `/settings` | Ajustes de la cuenta: la foto de perfil |
 
 Todas las páginas menos `/login` exigen sesión: si entras sin ella, el proxy te lleva
 al login **recordando de dónde venías** (ruta y parámetros, `callbackUrl`). Al entrar se
@@ -55,6 +57,8 @@ enlaces que no llevan a ningún sitio.
   ventana nueva. En el panel, y solo si la cola abierta viene en la URL, apunta a la cola
   que se está gestionando (`/player?streamer=<id>`).
 - **Usuarios** solo lo ve un `admin`.
+- El bloque de la derecha (avatar, nombre y rol) es un enlace a `/settings`, donde el
+  usuario cambia su foto de perfil.
 - La marca del centro es el propio nombre de la página, y lleva a la página del rol: en
   modo normal se ve en latín (Kaushan Script, una pincelada rotunda como el rótulo de
   una viñeta de manga) y en modo otaku en japonés (桜龍, en Yomogi, letra japonesa a
@@ -123,6 +127,32 @@ La sesión es un JWT sin estado: no hay lista de sesiones en el servidor que pod
 Cerrar sesión borra la cookie del navegador, pero una copia de esa cookie seguiría siendo
 válida hasta que expire (7 días). Para invalidar de verdad hay que cambiar la contraseña
 del usuario.
+
+## La foto de perfil
+
+Cada usuario puede subir su propia foto desde `/settings`, a la que se llega pulsando su
+bloque en la cabecera (avatar, nombre y rol). La foto se ve en la cabecera y en la lista
+de usuarios de `/users`.
+
+- **El recorte se hace en el navegador**: la imagen se recorta a un cuadrado de 256×256
+  (el centro, que es lo que se espera de una foto de perfil) y se convierte a WebP antes
+  de subirla. Lo que llega al servidor son unos pocos KiB, no los varios megas de la foto
+  original.
+- **Se guarda en la base de datos**, en la tabla `Avatar`, no en un fichero: la aplicación
+  se despliega en Vercel, donde el disco es temporal y una foto subida a `public/` se
+  perdería en el siguiente despliegue. Va en su propia tabla para que las consultas de
+  usuario no arrastren la imagen.
+- **El tipo se deduce de los bytes del fichero**, no del `content-type` que declara el
+  cliente: lo que se comprueba es lo que después se sirve. Se aceptan PNG, JPEG y WebP, y
+  el límite son 512 KiB.
+- **Solo se ven las fotos de dentro de la aplicación**: `GET /api/avatars/<id>` exige
+  sesión, así que la imagen no se sirve en abierto. Por eso las fotos van sin optimizar
+  (el optimizador de imágenes de Next pide la URL sin la cookie de sesión) y con la
+  versión de la imagen en la URL (`?v=`), para que una foto nueva no se quede la vieja
+  en la caché.
+
+Los ajustes están preparados para crecer: ahora solo tienen la foto de perfil, pero la
+página ya tiene su sitio en la cabecera y su propia ruta.
 
 ## Reproductor
 
@@ -231,13 +261,14 @@ Hay dos grupos, en `tests/`:
   transacciones que en producción. Solo se sustituyen las cookies de la petición y las
   llamadas a la API de YouTube.
 - **`tests/ui`** corre en jsdom con Testing Library. Cubre el login, la cabecera según el
-  rol, el panel de moderadores, la gestión de usuarios, el reproductor, los hooks y lo que
-  decide cada página según la sesión. El reproductor se prueba con un doble de la IFrame
-  API de YouTube que permite simular que un vídeo empieza, termina, falla o queda
-  bloqueado.
+  rol, el panel de moderadores, la gestión de usuarios, los ajustes de la foto de perfil,
+  el reproductor, los hooks y lo que decide cada página según la sesión. El reproductor
+  se prueba con un doble de la IFrame API de YouTube que permite simular que un vídeo
+  empieza, termina, falla o queda bloqueado.
 
 Lo que las pruebas no ejercitan: el arrastre con el ratón para reordenar la cola, el
-`layout` raíz y la reproducción real de YouTube en un navegador.
+recorte de la foto de perfil en el canvas del navegador, el `layout` raíz y la
+reproducción real de YouTube en un navegador.
 
 ## Puesta en marcha
 

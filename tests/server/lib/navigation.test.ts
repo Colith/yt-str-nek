@@ -56,6 +56,12 @@ describe("página de cada rol", () => {
     expect(canVisit("streamer", "/player")).toBe(true)
   })
 
+  it("los ajustes están a mano de todos los roles", () => {
+    for (const role of ["admin", "mod", "streamer"]) {
+      expect(canVisit(role, "/settings")).toBe(true)
+    }
+  })
+
   it("la etiqueta del rol es legible", () => {
     expect(roleLabel("admin")).toBe("Admin")
     expect(roleLabel("mod")).toBe("Mod")

@@ -11,7 +11,7 @@ export function getInitials(name: string): string {
 
 interface UserAvatarProps {
   username: string
-  /** Foto del usuario. Cuando se implemente, sustituye a las iniciales. */
+  /** Foto del usuario. Cuando no hay, se dibujan las iniciales. */
   imageUrl?: string | null
   className?: string
 }
@@ -19,8 +19,10 @@ interface UserAvatarProps {
 /**
  * Avatar del usuario.
  *
- * Ahora se dibuja con las iniciales; cuando cada usuario pueda subir una
- * imagen, se pasará su URL y bastará con cambiar esta pieza.
+ * Se dibuja con las iniciales mientras no haya foto. La imagen viene de
+ * /api/avatars, que solo responde a los que están dentro de la aplicación, y
+ * por eso va sin optimizar: el optimizador de imágenes pide la URL sin la
+ * cookie de sesión y se quedaría con un error.
  */
 export function UserAvatar({ username, imageUrl, className }: UserAvatarProps) {
   const base = cn(
@@ -34,6 +36,7 @@ export function UserAvatar({ username, imageUrl, className }: UserAvatarProps) {
       <Image
         src={imageUrl}
         alt=""
+        unoptimized
         width={32}
         height={32}
         className={cn(base, "bg-muted object-cover")}

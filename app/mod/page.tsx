@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getSession, hasRole, PANEL_ACCESS_ROLES } from "@/lib/auth"
+import { getAvatarUrl } from "@/lib/avatars"
 import { SITE } from "@/lib/site"
 import { listStreamers } from "@/lib/streamers"
 import { ModDashboard } from "@/components/queue/mod-dashboard"
@@ -23,6 +24,7 @@ export default async function ModPage({
   if (!hasRole(session, PANEL_ACCESS_ROLES)) redirect("/")
 
   const streamers = await listStreamers(session)
+  const avatarUrl = await getAvatarUrl(session.id)
 
   // La cola abierta va en la URL. Si no viene, o apunta a alguien que ya no es
   // streamer, se abre la del primero.
@@ -36,6 +38,7 @@ export default async function ModPage({
       <AppHeader
         session={session}
         active="panel"
+        avatarUrl={avatarUrl}
         // El reproductor de la cabecera abre la cola que se está gestionando.
         // Solo cuando viene en la URL: si no, se abre el reproductor en general
         // y así nunca apunta a una cola distinta de la que se está viendo.

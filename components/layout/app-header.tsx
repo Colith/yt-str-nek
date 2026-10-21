@@ -24,6 +24,8 @@ interface AppHeaderProps {
    * gestionando, para no tener que elegirla otra vez en otra pestaña.
    */
   playerHref?: string
+  /** Foto del usuario, si tiene alguna. */
+  avatarUrl?: string | null
 }
 
 /**
@@ -34,9 +36,10 @@ interface AppHeaderProps {
  * Lo que no se puede hacer no aparece, en lugar de aparecer bloqueado.
  *
  * La marca va en el centro y el usuario en la derecha, como en cualquier
- * aplicación en la que se pasa la mayor parte del tiempo.
+ * aplicación en la que se pasa la mayor parte del tiempo. El bloque del
+ * usuario lleva a sus ajustes, donde se cambia la foto de perfil.
  */
-export function AppHeader({ session, active, playerHref }: AppHeaderProps) {
+export function AppHeader({ session, active, playerHref, avatarUrl }: AppHeaderProps) {
   const items = getHeaderItems(session.role)
 
   return (
@@ -93,13 +96,20 @@ export function AppHeader({ session, active, playerHref }: AppHeaderProps) {
           <AppearanceMenu />
 
           <div className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-sm">
-            <UserAvatar username={session.username} />
-            <span className="max-w-32 truncate font-medium sm:max-w-none">
-              {session.username}
-            </span>
-            <span className="hidden shrink-0 rounded-md border border-border/60 px-1.5 py-0.5 text-xs font-normal text-muted-foreground lg:inline">
-              {roleLabel(session.role)}
-            </span>
+            {/* El bloque del usuario es la puerta a sus ajustes. */}
+            <Link
+              href="/settings"
+              title="Ajustes"
+              className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-0.5 transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <UserAvatar username={session.username} imageUrl={avatarUrl} />
+              <span className="max-w-32 truncate font-medium sm:max-w-none">
+                {session.username}
+              </span>
+              <span className="hidden shrink-0 rounded-md border border-border/60 px-1.5 py-0.5 text-xs font-normal text-muted-foreground lg:inline">
+                {roleLabel(session.role)}
+              </span>
+            </Link>
           </div>
 
           <LogoutButton />

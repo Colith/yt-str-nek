@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { UserAvatar } from "@/components/layout/user-avatar"
 import type { Role } from "@/lib/session"
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -37,6 +38,8 @@ interface UserRow {
   createdAt: string
   songsAdded: number
   isSelf: boolean
+  /** Foto de perfil, si el usuario ha subido alguna. */
+  avatarUrl: string | null
 }
 
 const ROLES: Array<{ value: Role; label: string; hint: string }> = [
@@ -180,6 +183,11 @@ export function UsersManager() {
                   key={user.id}
                   className="flex flex-wrap items-center gap-2 py-3"
                 >
+                  <UserAvatar
+                    username={user.username}
+                    imageUrl={user.avatarUrl}
+                    className="size-9"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
                       {user.username}

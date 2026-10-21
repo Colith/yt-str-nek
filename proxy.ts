@@ -19,6 +19,7 @@ const PROTECTED: Array<{ prefix: string; roles: readonly Role[] }> = [
   { prefix: "/mod", roles: PANEL_ACCESS_ROLES },
   { prefix: "/users", roles: ADMIN_ROLES },
   { prefix: "/player", roles: PLAYER_ROLES },
+  { prefix: "/settings", roles: PLAYER_ROLES },
 ]
 
 export async function proxy(request: NextRequest) {
@@ -51,5 +52,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/mod/:path*", "/player/:path*", "/users/:path*"],
+  matcher: [
+    "/login",
+    "/mod/:path*",
+    "/player/:path*",
+    "/users/:path*",
+    "/settings/:path*",
+  ],
 }

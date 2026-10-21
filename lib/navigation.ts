@@ -24,9 +24,9 @@ export interface HeaderItem {
 
 /** Secciones a las que puede ir cada rol. */
 const VISITABLE: Record<Role, readonly string[]> = {
-  admin: ["/mod", "/player", "/users"],
-  mod: ["/mod", "/player"],
-  streamer: ["/mod", "/player"],
+  admin: ["/mod", "/player", "/users", "/settings"],
+  mod: ["/mod", "/player", "/settings"],
+  streamer: ["/mod", "/player", "/settings"],
 }
 
 /** Etiqueta corta del rol, para la insignia del usuario. */

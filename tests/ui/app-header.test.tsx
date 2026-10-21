@@ -82,6 +82,28 @@ describe("cabecera", () => {
     expect(screen.getByText("Mod")).toBeInTheDocument()
   })
 
+  it("el bloque del usuario lleva a sus ajustes", () => {
+    renderHeader()
+
+    expect(screen.getByRole("link", { name: /ana/ })).toHaveAttribute("href", "/settings")
+  })
+
+  it("sin foto, se pintan las iniciales", () => {
+    const { container } = renderHeader({ session: { ...SESSION, username: "koi" } })
+
+    expect(container.querySelector("img")).toBeNull()
+    expect(container.textContent).toContain("KO")
+  })
+
+  it("con foto, se ve la imagen en vez de las iniciales", () => {
+    const { container } = renderHeader({ avatarUrl: "/api/avatars/u1?v=1" })
+
+    const img = container.querySelector("img")
+    expect(img).not.toBeNull()
+    expect(img).toHaveAttribute("src", "/api/avatars/u1?v=1")
+    expect(container.textContent).not.toContain("AN")
+  })
+
   it("la marca lleva a la página del rol", () => {
     const { rerender } = renderHeader()
     expect(screen.getByRole("link", { name: /Sakura Ryū/ })).toHaveAttribute("href", "/mod")

@@ -27,6 +27,7 @@ describe("proxy", () => {
     expect(destination(await visit("/mod"))).toBe("/login?callbackUrl=%2Fmod")
     expect(destination(await visit("/player"))).toBe("/login?callbackUrl=%2Fplayer")
     expect(destination(await visit("/users"))).toBe("/login?callbackUrl=%2Fusers")
+    expect(destination(await visit("/settings"))).toBe("/login?callbackUrl=%2Fsettings")
   })
 
   it("un token inválido cuenta como no tener sesión", async () => {
@@ -48,6 +49,7 @@ describe("proxy", () => {
     expect(destination(await visit("/mod", "admin"))).toBeNull()
     expect(destination(await visit("/player", "admin"))).toBeNull()
     expect(destination(await visit("/users", "admin"))).toBeNull()
+    expect(destination(await visit("/settings", "admin"))).toBeNull()
   })
 
   it("mod entra en el panel y el reproductor, pero no en usuarios", async () => {
@@ -62,6 +64,12 @@ describe("proxy", () => {
     expect(destination(await visit("/users", "streamer"))).toBe("/player")
   })
 
+  it("los ajustes son de todos: cada rol entra en los suyos", async () => {
+    for (const role of ["admin", "mod", "streamer"]) {
+      expect(destination(await visit("/settings", role))).toBeNull()
+    }
+  })
+
   it("un rol desconocido se trata como streamer", async () => {
     expect(destination(await visit("/player", "inventado"))).toBeNull()
     expect(destination(await visit("/mod", "inventado"))).toBeNull()
@@ -74,7 +82,13 @@ describe("proxy", () => {
     )
   })
 
-  it("vigila el login y las tres zonas protegidas", () => {
-    expect(config.matcher).toEqual(["/login", "/mod/:path*", "/player/:path*", "/users/:path*"])
+  it("vigila el login y las cuatro zonas protegidas", () => {
+    expect(config.matcher).toEqual([
+      "/login",
+      "/mod/:path*",
+      "/player/:path*",
+      "/users/:path*",
+      "/settings/:path*",
+    ])
   })
 })

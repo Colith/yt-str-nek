@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Radio } from "lucide-react"
 import { getSession, hasRole, PANEL_ROLES } from "@/lib/auth"
+import { getAvatarUrl } from "@/lib/avatars"
 import { SITE } from "@/lib/site"
 import { listStreamers } from "@/lib/streamers"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
@@ -21,6 +22,8 @@ export default async function PlayerPage({
   const session = await getSession()
   if (!session) redirect("/login?callbackUrl=/player")
 
+  const avatarUrl = await getAvatarUrl(session.id)
+
   // Un streamer solo recibe su propia cola; admin y mod, la de todos.
   const streamers = await listStreamers(session)
   const canSwitch = hasRole(session, PANEL_ROLES)
@@ -37,7 +40,7 @@ export default async function PlayerPage({
     // La key reinicia el reproductor al pasar de un streamer a otro.
     return (
       <>
-        <AppHeader session={session} active="player" />
+        <AppHeader session={session} active="player" avatarUrl={avatarUrl} />
 
         <Player
           key={streamer.id}
@@ -51,7 +54,7 @@ export default async function PlayerPage({
   // Admin o mod sin streamer elegido: se les pide que escojan una cola.
   return (
     <>
-      <AppHeader session={session} active="player" />
+      <AppHeader session={session} active="player" avatarUrl={avatarUrl} />
 
       <PageTransition>
         <div className="mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-md flex-col justify-center gap-4 p-6">

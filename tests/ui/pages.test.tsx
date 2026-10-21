@@ -5,6 +5,7 @@ import Home from "@/app/page"
 import LoginPage from "@/app/login/page"
 import ModPage from "@/app/mod/page"
 import PlayerPage from "@/app/player/page"
+import SettingsPage from "@/app/settings/page"
 import UsersPage from "@/app/users/page"
 import { getSession } from "@/lib/auth"
 import { listStreamers } from "@/lib/streamers"
@@ -20,10 +21,15 @@ vi.mock("@/lib/auth", async (original) => ({
   getSession: vi.fn(),
 }))
 vi.mock("@/lib/streamers", () => ({ listStreamers: vi.fn() }))
+// La foto de perfil sale de la base de datos: aquí no interesa.
+vi.mock("@/lib/avatars", () => ({ getAvatarUrl: vi.fn().mockResolvedValue(null) }))
 vi.mock("@/components/queue/mod-dashboard", () => ({ ModDashboard: () => null }))
 vi.mock("@/components/player/player", () => ({ Player: () => null }))
 vi.mock("@/components/users/users-manager", () => ({
   UsersManager: () => <div>gestor de usuarios</div>,
+}))
+vi.mock("@/components/settings/profile-settings", () => ({
+  ProfileSettings: () => <div>ajustes de perfil</div>,
 }))
 vi.mock("@/components/theme/appearance-menu", () => ({ AppearanceMenu: () => null }))
 
@@ -234,5 +240,19 @@ describe("página de login", () => {
 
     expect(screen.getByLabelText("Usuario")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Entrar" })).toBeInTheDocument()
+  })
+})
+
+describe("página de ajustes (/settings)", () => {
+  it("sin sesión manda al login", async () => {
+    session(null)
+    await expect(SettingsPage()).rejects.toThrow("REDIRECT:/login?callbackUrl=/settings")
+  })
+
+  it("cualquier rol dentro ve sus ajustes", async () => {
+    session("streamer")
+    render((await SettingsPage()) as ReactElement)
+
+    expect(screen.getByText("ajustes de perfil")).toBeInTheDocument()
   })
 })
