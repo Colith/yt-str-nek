@@ -25,6 +25,13 @@ describe("logotipo", () => {
 
     expect(container.firstChild).toHaveClass("text-3xl")
   })
+
+  it("cada versión lleva su tipografía", () => {
+    render(<Wordmark />)
+
+    expect(screen.getByText("Sakura Ryū")).toHaveClass("font-display")
+    expect(screen.getByText("桜龍")).toHaveClass("font-jp-display")
+  })
 })
 
 describe("el logotipo cambia con el modo", () => {
@@ -39,5 +46,10 @@ describe("el logotipo cambia con el modo", () => {
     expect(CSS).toMatch(
       /html\[data-art="otaku"\]\s+\.wordmark-jp\s*\{\s*display:\s*inline/
     )
+  })
+
+  it("las dos versiones van escritas a mano", () => {
+    expect(CSS).toMatch(/--font-display:\s*var\(--font-kaushan\)/)
+    expect(CSS).toMatch(/--font-jp-display:\s*var\(--font-yomogi\)/)
   })
 })

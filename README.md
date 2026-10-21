@@ -56,9 +56,10 @@ enlaces que no llevan a ningún sitio.
   que se está gestionando (`/player?streamer=<id>`).
 - **Usuarios** solo lo ve un `admin`.
 - La marca del centro es el propio nombre de la página, y lleva a la página del rol: en
-  modo normal se ve en latín (Cormorant Garamond) y en modo otaku en japonés (桜龍, en
-  Shippori Mincho). El nombre y su versión japonesa están en `lib/site.ts`: cambiar el
-  nombre de la página es cambiar una línea, no buscarla por el proyecto.
+  modo normal se ve en latín (Kaushan Script, una pincelada rotunda como el rótulo de
+  una viñeta de manga) y en modo otaku en japonés (桜龍, en Yomogi, letra japonesa a
+  mano). El nombre y su versión japonesa están en `lib/site.ts`: cambiar el nombre de
+  la página es cambiar una línea, no buscarla por el proyecto.
 - La sección en la que se está no es un enlace: aparece marcada con `aria-current`.
 - Los botones de la izquierda se definen por rol en `lib/navigation.ts`, sin React, para
   poder probarlos sin montar componentes.
@@ -381,10 +382,10 @@ cambio se aplica al vuelo con `PUT /api/me/style`, sin recargar. Como el layout
 depende de la sesión, todas las páginas se renderizan en el servidor a petición.
 
 El logotipo sigue al fondo: con el mismo atributo `data-art`, el nombre de la
-cabecera y del login se ven en latín (Cormorant Garamond) en modo normal y en
-japonés (桜龍, en Shippori Mincho) en modo otaku. El componente `Wordmark` pinta
-las dos versiones y el CSS esconde la que no toca, así que el cambio es
-instantáneo y no hay parpadeo al recargar.
+cabecera y del login se ven en latín (Kaushan Script) en modo normal y en japonés
+(桜龍, en Yomogi) en modo otaku. El componente `Wordmark` pinta las dos
+versiones y el CSS esconde la que no toca, así que el cambio es instantáneo y
+no hay parpadeo al recargar.
 
 ### Preparar la base de producción
 

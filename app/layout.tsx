@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Cormorant_Garamond, Inter, Noto_Serif_JP, Shippori_Mincho } from "next/font/google"
+import { Inter, Kaushan_Script, Noto_Serif_JP, Yomogi } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { SakuraPetals } from "@/components/sakura/sakura-petals"
@@ -19,22 +19,24 @@ const notoSerifJP = Noto_Serif_JP({
   weight: ["400", "500", "600", "700"],
 })
 
-// Las dos tipografías del logotipo: la latina, elegante y de mucho contraste,
-// y la japonesa, que es la que aparece en modo otaku.
-const cormorant = Cormorant_Garamond({
+// Las dos tipografías del logotipo: la latina, escrita a pincel como el rótulo
+// de una viñeta de manga, y la japonesa, que es la que aparece en modo otaku.
+// Kaushan Script solo tiene un peso: con font-semibold el navegador
+// sintetizaría un negrita falso, así que el logotipo la usa tal cual.
+const kaushan = Kaushan_Script({
   subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["500", "600"],
+  variable: "--font-kaushan",
+  weight: ["400"],
 })
 
-// Mincho: la voz clásica del japonés impreso, la del logotipo en modo otaku.
-// El subset solo decide qué archivos se precargan: los kanji (桜龍) siguen
-// viniendo, porque Google los reparte en rangos de caracteres que el
-// navegador pide solo cuando hacen falta.
-const shippori = Shippori_Mincho({
+// Yomogi: letra japonesa a mano, de rotulador. El subset solo decide qué
+// archivos se precargan: los kanji (桜龍) siguen viniendo, porque Google los
+// reparte en rangos de caracteres que el navegador pide solo cuando hacen
+// falta.
+const yomogi = Yomogi({
   subsets: ["latin"],
-  variable: "--font-shippori",
-  weight: ["600"],
+  variable: "--font-yomogi",
+  weight: ["400"],
 })
 
 export const metadata: Metadata = {
@@ -68,7 +70,7 @@ export default async function RootLayout({
   return (
     <html lang="es" data-art={artStyle} suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${notoSerifJP.variable} ${cormorant.variable} ${shippori.variable} font-sans antialiased`}
+        className={`${inter.variable} ${notoSerifJP.variable} ${kaushan.variable} ${yomogi.variable} font-sans antialiased`}
       >
         <Providers>
           <MangaArtwork />
