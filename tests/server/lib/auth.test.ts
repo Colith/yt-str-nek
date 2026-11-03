@@ -5,6 +5,7 @@ import {
   createSession,
   destroySession,
   getSession,
+  getSessionWithRenewal,
   parseRole,
   verifyCredentials,
 } from "@/lib/auth"
@@ -14,7 +15,10 @@ import { createUser, resetDatabase } from "../../helpers/factories"
 import { cookieJar, signInAs } from "../../helpers/session"
 
 beforeEach(resetDatabase)
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllEnvs()
+})
 
 describe("verifyCredentials", () => {
   it("devuelve id, nombre y rol si la contraseña coincide, y nunca el hash", async () => {
@@ -66,6 +70,41 @@ describe("cookie de sesión", () => {
 
     await destroySession()
     expect(await getSession()).toBeNull()
+  })
+})
+
+describe("getSessionWithRenewal", () => {
+  const USER = { id: "u1", username: "ana", role: "admin" }
+
+  it("renueva la cookie cuando al token le quedan menos de 3 días", async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+    await createSession(USER)
+    const original = cookieJar.get(SESSION_COOKIE)?.value
+
+    vi.setSystemTime(new Date(Date.now() + (SESSION_MAX_AGE - 24 * 3600) * 1000))
+
+    expect(await getSessionWithRenewal()).toEqual(USER)
+
+    const renewed = cookieJar.get(SESSION_COOKIE)?.value
+    expect(renewed).not.toBe(original)
+    expect(await verifySessionToken(renewed)).toEqual(USER)
+    expect(cookieJar.get(SESSION_COOKIE)?.options).toMatchObject({
+      maxAge: SESSION_MAX_AGE,
+    })
+  })
+
+  it("no reescribe la cookie si al token le queda margen", async () => {
+    await createSession(USER)
+    const original = cookieJar.get(SESSION_COOKIE)?.value
+
+    expect(await getSessionWithRenewal()).toEqual(USER)
+
+    expect(cookieJar.get(SESSION_COOKIE)?.value).toBe(original)
+  })
+
+  it("sin sesión no inventa nada", async () => {
+    expect(await getSessionWithRenewal()).toBeNull()
   })
 })
 

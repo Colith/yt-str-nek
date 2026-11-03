@@ -6,13 +6,12 @@ import { destroySession } from "@/lib/auth"
  *
  * Es una ruta aparte porque el API de cierre devuelve JSON y un formulario
  * normal no sabría a dónde ir después.
+ *
+ * Solo por POST: con GET, cualquier visita accidental (o un prefetch del
+ * navegador) a /logout cerraba la sesión sin querer. Un GET ahora responde
+ * 405 y no toca la cookie.
  */
 export async function POST(request: NextRequest) {
   await destroySession()
   return NextResponse.redirect(new URL("/", request.url), { status: 303 })
-}
-
-export async function GET(request: NextRequest) {
-  await destroySession()
-  return NextResponse.redirect(new URL("/", request.url))
 }

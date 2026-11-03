@@ -3,7 +3,7 @@ import {
   ADMIN_ROLES,
   PANEL_ACCESS_ROLES,
   PANEL_ROLES,
-  getSession,
+  getSessionWithRenewal,
   hasRole,
   type Role,
   type SessionUser,
@@ -23,7 +23,9 @@ export { ADMIN_ROLES, PANEL_ACCESS_ROLES, PANEL_ROLES }
 export async function requireRoles(
   allowed: readonly Role[]
 ): Promise<{ session: SessionUser } | NextResponse> {
-  const session = await getSession()
+  // Con renovación: las API también mantienen viva la sesión. Es el caso del
+  // reproductor, que lleva días sondeando sin cambiar de página.
+  const session = await getSessionWithRenewal()
 
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })

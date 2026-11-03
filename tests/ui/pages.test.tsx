@@ -241,6 +241,24 @@ describe("página de login", () => {
     expect(screen.getByLabelText("Usuario")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Entrar" })).toBeInTheDocument()
   })
+
+  it("explica que la sesión ha caducado cuando el proxy lo indica", async () => {
+    render((await LoginPage(params({ motivo: "caducada" }))) as ReactElement)
+
+    expect(screen.getByRole("status")).toHaveTextContent("Tu sesión ha caducado")
+  })
+
+  it("avisa también si el token dejó de ser válido", async () => {
+    render((await LoginPage(params({ motivo: "invalida" }))) as ReactElement)
+
+    expect(screen.getByRole("status")).toHaveTextContent("Tu sesión ya no es válida")
+  })
+
+  it("no inventa avisos cuando no hay motivo", async () => {
+    render((await LoginPage(params())) as ReactElement)
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument()
+  })
 })
 
 describe("página de ajustes (/settings)", () => {

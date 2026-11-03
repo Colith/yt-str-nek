@@ -6,9 +6,13 @@ import {
   PANEL_ROLES,
   PLAYER_ROLES,
   SESSION_MAX_AGE,
+  SESSION_RENEW_BEFORE,
   getSecret,
   hasRole,
+  sessionCookieOptions,
+  shouldRenewSession,
   signSessionToken,
+  verifySessionDetails,
   verifySessionToken,
 } from "@/lib/session"
 
@@ -18,6 +22,7 @@ describe("tokens de sesión", () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllEnvs()
+    vi.restoreAllMocks()
   })
 
   it("lo que se firma se recupera tal cual al verificar", async () => {
@@ -65,12 +70,84 @@ describe("tokens de sesión", () => {
   })
 
   it("sin AUTH_SECRET no se puede firmar, y verificar no da sesión", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
     const token = await signSessionToken(USER)
     vi.stubEnv("AUTH_SECRET", "")
 
     expect(() => getSecret()).toThrow("AUTH_SECRET")
     await expect(signSessionToken(USER)).rejects.toThrow("AUTH_SECRET")
+
     expect(await verifySessionToken(token)).toBeNull()
+    expect(await verifySessionDetails(token)).toEqual({ ok: false, reason: "config" })
+    expect(spy).toHaveBeenCalled()
+  })
+})
+
+describe("motivo del fallo de sesión", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it("sin token, no hay nada que verificar", async () => {
+    expect(await verifySessionDetails(undefined)).toEqual({ ok: false, reason: "missing" })
+    expect(await verifySessionDetails("")).toEqual({ ok: false, reason: "missing" })
+  })
+
+  it("un token con la firma rota no es una caducidad", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    expect(await verifySessionDetails("esto-no-es-un-jwt")).toEqual({
+      ok: false,
+      reason: "invalid",
+    })
+  })
+
+  it("un token caducado se distingue de uno inválido", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {})
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+    const token = await signSessionToken(USER)
+
+    vi.setSystemTime(new Date(Date.now() + (SESSION_MAX_AGE + 60) * 1000))
+
+    expect(await verifySessionDetails(token)).toEqual({ ok: false, reason: "expired" })
+  })
+
+  it("al verificar bien devuelve también cuándo caduca", async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+    const token = await signSessionToken(USER)
+
+    const result = await verifySessionDetails(token)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.session).toEqual(USER)
+    expect(result.expiresAt).toBe(Date.now() + SESSION_MAX_AGE * 1000)
+  })
+})
+
+describe("renovación deslizante", () => {
+  it("no renueva un token recién firmado", () => {
+    const now = Date.now()
+    expect(shouldRenewSession(now + SESSION_MAX_AGE * 1000, now)).toBe(false)
+  })
+
+  it("renueva cuando quedan menos de 3 días, y no justo antes", () => {
+    const now = Date.now()
+    expect(shouldRenewSession(now + SESSION_RENEW_BEFORE * 1000 + 60_000, now)).toBe(false)
+    expect(shouldRenewSession(now + SESSION_RENEW_BEFORE * 1000 - 60_000, now)).toBe(true)
+  })
+
+  it("las opciones de la cookie son las mismas al crear y al renovar", () => {
+    expect(sessionCookieOptions()).toMatchObject({
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+    })
   })
 })
 

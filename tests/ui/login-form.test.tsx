@@ -67,6 +67,12 @@ describe("formulario de login", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Error al iniciar sesión")
   })
 
+  it("muestra un aviso si el servidor dice que la sesión ha caducado", () => {
+    render(<LoginForm notice="Tu sesión ha caducado. Vuelve a entrar." />)
+
+    expect(screen.getByRole("status")).toHaveTextContent("Tu sesión ha caducado")
+  })
+
   it("la contraseña va oculta y el botón del ojo solo muestra lo que se está tecleando", async () => {
     render(<LoginForm />)
     const user = userEvent.setup()

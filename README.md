@@ -126,8 +126,24 @@ y su historial se borran con él.
 
 La sesión es un JWT sin estado: no hay lista de sesiones en el servidor que poder revocar.
 Cerrar sesión borra la cookie del navegador, pero una copia de esa cookie seguiría siendo
-válida hasta que expire (7 días). Para invalidar de verdad hay que cambiar la contraseña
-del usuario.
+válida hasta que expire. Para invalidar de verdad hay que cambiar la contraseña del usuario.
+
+La caducidad es **deslizante**: el token dura 7 días, pero cada visita a una página y cada
+llamada a la API comprueban cuánto le queda y, si está por debajo de 3 días, firman uno
+nuevo con otros 7. En la práctica, la sesión solo se cierra si pasas **7 días sin abrir
+nada**; un reproductor abierto la mantiene viva porque sus peticiones también renuevan.
+Antes caducaba siempre 7 días después de entrar, aunque la usaras a diario.
+
+Dos avisos para quien despliegue:
+
+- **`AUTH_SECRET` tiene que ser el mismo en Production y Preview, y no se cambia a la
+  ligera.** Rotarlo invalida a la vez todas las sesiones abiertas (el login lo dirá con
+  «tu sesión ya no es válida»).
+- **La aplicación debe servirse desde un único dominio.** Las cookies no se comparten
+  entre `yt-str-nek.vercel.app`, `yt-str-nek-blond.vercel.app` ni los hosts de preview,
+  así que entrar por uno y seguir por otro parece un cierre de sesión.
+- `GET /logout` ya no existe: solo `POST`. Una visita o un prefetch accidental a esa URL
+  cerraba la sesión sin querer.
 
 ## La foto de perfil
 
@@ -311,7 +327,7 @@ Abre `http://localhost:3000` e inicia sesión con el usuario creado en el seed.
 | --- | --- |
 | `POSTGRES_PRISMA_URL` | URL de conexión (pooled) a PostgreSQL. Es la que usa la aplicación en ejecución |
 | `POSTGRES_URL_NON_POOLING` | URL de conexión directa, usada por Prisma Migrate y por el seed |
-| `AUTH_SECRET` | Clave para firmar la sesión. Genera con `openssl rand -base64 32` |
+| `AUTH_SECRET` | Clave para firmar la sesión. Genera con `openssl rand -base64 32`. Debe ser la misma en todos los entornos y no rotarse sin avisar: cambiarla cierra todas las sesiones |
 | `YOUTUBE_API_KEY` | Clave de la YouTube Data API v3 (necesaria para buscar y resolver vídeos) |
 | `YOUTUBE_API_KEY_2` | Opcional: segunda clave (otro proyecto) para repartir la cuota diaria de búsquedas |
 | `SEED_USERNAME` | Usuario inicial que crea `npm run db:seed` |

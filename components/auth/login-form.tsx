@@ -14,7 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wordmark } from "@/components/layout/wordmark";
 
-export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
+export function LoginForm({
+  callbackUrl,
+  notice,
+}: {
+  callbackUrl?: string;
+  /** Aviso del servidor, por ejemplo que la sesión ha caducado. */
+  notice?: string;
+}) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -59,6 +66,14 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
         <CardDescription>Acceso con usuario y contraseña</CardDescription>
       </CardHeader>
       <CardContent>
+        {notice && (
+          <p
+            role="status"
+            className="mb-4 rounded-md border border-border/60 bg-muted/60 px-3 py-2 text-sm text-muted-foreground"
+          >
+            {notice}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Usuario</Label>

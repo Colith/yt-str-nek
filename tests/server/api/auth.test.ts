@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs"
 import { NextRequest } from "next/server"
 import { POST as login } from "@/app/api/auth/login/route"
 import { POST as apiLogout } from "@/app/api/auth/logout/route"
-import { GET as logoutGet, POST as logoutPost } from "@/app/logout/route"
+import { POST as logoutPost } from "@/app/logout/route"
+import * as logoutRoute from "@/app/logout/route"
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session"
 import { createUser, resetDatabase } from "../../helpers/factories"
 import { jsonRequest, readJson } from "../../helpers/http"
@@ -99,17 +100,18 @@ describe("cierre de sesión", () => {
     expect(cookieJar.has(SESSION_COOKIE)).toBe(false)
   })
 
-  it("/logout borra la cookie y vuelve a la portada, por POST y por GET", async () => {
+  it("/logout borra la cookie y vuelve a la portada", async () => {
     const post = await logoutPost(
       new NextRequest("http://localhost:3000/logout", { method: "POST" })
     )
     expect(post.status).toBe(303)
     expect(post.headers.get("location")).toBe("http://localhost:3000/")
     expect(cookieJar.has(SESSION_COOKIE)).toBe(false)
+  })
 
-    await signInAs({ id: "u1", username: "ana", role: "mod" })
-    const get = await logoutGet(new NextRequest("http://localhost:3000/logout"))
-    expect(get.headers.get("location")).toBe("http://localhost:3000/")
-    expect(cookieJar.has(SESSION_COOKIE)).toBe(false)
+  it("/logout no se puede disparar con un GET: una visita accidental no cierra la sesión", () => {
+    // Next responde 405 a un método que la ruta no exporta. Si GET volviera a
+    // existir, un prefetch o un enlace bastarían para cerrar la sesión.
+    expect("GET" in logoutRoute).toBe(false)
   })
 })

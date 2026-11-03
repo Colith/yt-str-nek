@@ -8,9 +8,11 @@ import {
   PLAYER_ROLES,
   ROLES,
   SESSION_COOKIE,
-  SESSION_MAX_AGE,
   hasRole,
+  sessionCookieOptions,
+  shouldRenewSession,
   signSessionToken,
+  verifySessionDetails,
   verifySessionToken,
   type Role,
   type SessionUser,
@@ -23,13 +25,7 @@ export async function createSession(user: SessionUser): Promise<void> {
   const token = await signSessionToken(user)
 
   const cookieStore = await cookies()
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-  })
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions())
 }
 
 export async function destroySession(): Promise<void> {
@@ -40,6 +36,27 @@ export async function destroySession(): Promise<void> {
 export async function getSession(): Promise<SessionUser | null> {
   const cookieStore = await cookies()
   return verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)
+}
+
+/**
+ * Como `getSession`, pero renueva la cookie si al token le queda poco.
+ *
+ * Solo vale para Route Handlers y Server Actions: en un Server Component
+ * `cookies().set()` lanza. Por eso las páginas renuevan en el proxy y las API
+ * aquí. Es lo que mantiene viva la sesión del reproductor, que sondea cada
+ * pocos segundos sin navegar a ninguna página.
+ */
+export async function getSessionWithRenewal(): Promise<SessionUser | null> {
+  const cookieStore = await cookies()
+  const result = await verifySessionDetails(cookieStore.get(SESSION_COOKIE)?.value)
+  if (!result.ok) return null
+
+  if (shouldRenewSession(result.expiresAt)) {
+    const token = await signSessionToken(result.session)
+    cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions())
+  }
+
+  return result.session
 }
 
 /** Verifica credenciales contra la base de datos. Devuelve null si no coinciden. */
